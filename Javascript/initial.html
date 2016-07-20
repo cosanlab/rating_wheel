@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.chart div {
+  font: 10px sans-serif;
+  background-color: steelblue;
+  text-align: right;
+  padding: 3px;
+  margin: 1px;
+  color: white;
+}
+
+</style>
+<svg></svg>
+<!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+<script>
+
+var bigR = 360; // radius of entire plot
+var c = 10; // number of emotion categories
+var t = 4; // number of intensity levels per category MINUS 1
+var p = 0.75; // proportion of (circle area / next biggest circle area)
+var g = 0.01; // gap between category sectors as [(gap size) / (circle size * c)]
+var s = 25; // space between same intensity levels (in pixels)
+var q = 0.75; // percentage larger (or if negative, smaller) than outside radius that center is
+
+var preciR = 0.05; // precision (radius): increments of percentage to decrease radius while checking overlap
+var preciS = 0.05; // precision (spacing): increments of percentage to decrease space while checking over-spacing
+var spacePad = 0.1; // when checking over-spacing, allowable percentage/amount of extra space (i.e., s * spacePad)
+var expFactor = 1.2; // exponential scaling factor, where each r = 2 * r * p^(l*expFactor)
+
+//document.write("CHECKPOINT: Initial variables defined");
+
+var summa1 = 0;
+for (i = 0; i < t-1; i++)
+{
+	summa1 += 2 * Math.pow(p, i);
+}
+var r = ((bigR - (s*t) - s) / (summa1 + (1+q)));
+
+function distance(x1, y1, x2, y2)
+// finds distance between points (x1, y1) and (x2, y2)
+{
+	var underRadical = Math.pow((x2-x1), 2) + Math.pow((y2-y1), 2);
+	return Math.pow(underRadical, 0.5);
+}
+function checkOverlap(dist, layer, inc)
+{
+	var origRad = r * Math.pow(p, layer*expFactor);
+	var multiplier = 1 - (inc * preciR);
+
+	var layerCircum = 0;
+	if (layer == 0)
+	{
+		layerCircum = 2 * Math.PI * (bigR - r);
+	}
+	else
+	{
+		layerCircum = 2 * Math.PI * (bigR - summa2(layer) - r);
+	}
+	var gap = g * layerCircum;
+	var needSpace = (2 * origRad * multiplier) + gap;
+
+	if (dist >= needSpace)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+function checkSpacing(dist, layer, inc)
+{
+	var outerRad = r * Math.pow(r, layer);
+	var innerRad = r * Math.pow(r, layer+1);
+	var maxSpace = outerRad + (s * (1+spacePad)) + innerRad;
+
+	var distScale = dist * (1 - (inc*preciS));
+
+	if (distScale <= maxSpace)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+function summa2(l)
+// finds summation, from i = 0 to i = l, of 2*r*p^i; plus s * (l-1); plus p^(l-1)
+{
+	var result = 0;
+	for (var k = 0; k < l+1; k++)
+	{
+		var term = 2 * r * Math.pow(p, k);
+		result += term;
+	}
+	result += s * (l-1);
+	result += Math.pow(p, l-1);
+	return result;
+}
+
+//document.write(" CHECKPOINT: Functions defined"); 
+
+
+// initialize list with manually set scale variables
+var manSclRad = [];
+var manSclSpc = [];
+
+//document.write(" CHECKPOINT: about to run spacing / overlapping tests");
+
+// test distances to check over-spacing
+for (var i = 0; i < t-1; i++)
+{
+	var outRad = r * Math.pow(p, i*expFactor);
+	var inRad = r * Math.pow(p, (i+1)*expFactor);
+	var outZ = summa2(i) + r;
+		if (i == 0) { outZ = r + s; } //TODO "plus s"?
+	var inZ = summa2(i+1) + r;
+	
+	var trigVal = (2 * Math.PI) / c;
+	outX = (bigR - outZ) * Math.cos(trigVal);
+	outY = (bigR - outZ) * Math.sin(trigVal);
+	inX = (bigR - inZ) * Math.cos(trigVal);
+	inY = (bigR - inZ) * Math.sin(trigVal)
+
+	var increments = 0;
+	var condition = true;
+	while (condition)
+	{
+		var eval = checkSpacing(distance(outX, outY, inX, inY), i, increments);
+		if (eval)
+		{
+			condition = false;
+		}
+		else
+		{
+			increments++;
+		}
+	}
+	manSclSpc[i] = 1 - (increments * preciS);
+}
+
+//document.write(" CHECKPOINT: successfully ran over-spacing test <br>"); // last consistent checkpoint met
+
+// test distances to check overlapping
+for (var i = 0; i < t-1; i++)
+{
+	var origRad = r * Math.pow(p, i*expFactor);
+	var z = summa2(i) + r;
+		if (i == 0) { z = r + s; } //TODO "plus s"?
+	var x1 = (bigR - z) * manSclSpc[i];
+	var y1 = 0;
+	var trigVal = (2 * Math.PI) / c;
+	var x2 = (bigR - z) * Math.cos(trigVal) * manSclSpc[i];
+	var y2 = (bigR - z) * Math.sin(trigVal) * manSclSpc[i];
+
+	var increments = 0;
+	var condition = true;
+	while(condition)
+	{
+		var dist = distance(x1, y1, x2, y2);
+		var eval = checkOverlap(distance(x1, y1, x2, y2), i, increments);
+		if (eval)
+		{
+			condition = false;
+		}
+		else
+		{
+			increments++;
+		}
+	}
+	manSclRad[i] = 1 - (increments * preciR);
+	
+}
+
+var allPoints = []; // list of lists, where each entry is a point such that indexes 0=radius, 1=x pos, 2=y pos, 3=cat, 4=intens
+for (var n = 0; n < c; n++)
+{
+	var trigVal = ((2 * Math.PI) / c) * n;
+
+	for (var l = 0; l < t-1; l++)
+	{
+		var radius = r * Math.pow(p, l*expFactor) * manSclRad[l];
+		var z = summa2(l) + r;
+			if (l == 0) { z = r + s; }
+		var x = ((bigR - z) * Math.cos(trigVal) * manSclSpc[l]) + bigR;
+		var y = ((bigR - z) * Math.sin(trigVal) * manSclSpc[l]) + bigR;
+
+		allPoints.push([radius, x, y, c, l]);
+	}
+}
+
+// building JSON object construction string
+var text = '{ "entries" : [';
+for (var iter = 0; iter < allPoints.length; iter++)
+{
+	var toAdd = '{ "radius":' + allPoints[iter][0];
+	toAdd += ' , "x_pos":' + allPoints[iter][1];
+	toAdd += ' , "y_pos":' + allPoints[iter][2];
+	toAdd += ' , "cat":' + allPoints[iter][3];
+	toAdd += ' , "intens":' + allPoints[iter][4];
+	if (iter == allPoints.length - 1)
+	{
+		toAdd += "} ";
+	}
+	else
+	{
+		toAdd += '}, ';
+	}
+	text += toAdd;
+}
+text += ']}';
+
+//document.write(text);
+
+var jsonObj = JSON.parse(text);
+var jsonData = jsonObj.entries;
+
+var svgContainer = d3.select("body").append("svg")
+	.attr("width", bigR * 2).attr("height", bigR * 2);
+var circles = svgContainer
+	.selectAll("circle")
+	.data(jsonData)
+	.enter().append("circle");
+
+var circlesAtt = circles
+	.attr("cx", function (d) { return d.x_pos; })
+	.attr("cy", function (d) { return d.y_pos; })
+	.attr("r", function (d) { return d.radius; });
+	.style("fill", "steelblue");
+
+
+</script>
