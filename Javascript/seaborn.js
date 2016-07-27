@@ -391,7 +391,6 @@ function diverging_palette(h_neg, h_pos, s, l, n, center)
 		arguments[4] = 6;
 		arguments[5] = "light";
 	case 1:
-		arguments[0] = 0;
 		arguments[1] = 0;
 		arguments[2] = 75;
 		arguments[3] = 50;
@@ -427,91 +426,161 @@ function diverging_palette(h_neg, h_pos, s, l, n, center)
 	return blend_palette(neg.concat(mid, pos), n);
 }
 
+function blend_palette(colors, n_colors, input)
+{
+	// from Python module, Seaborn
+
+	switch (arguments.length){ // emulate function overloading
+	case 0:
+		arguments[0] = ["black"];
+		arguments[1] = 6;
+		arguments[2] = "rgb";
+	case 1:
+		arguments[1] = 6;
+		arguments[2] = "rgb";
+	case 2:
+		arguments[3] = "rgb";
+	case 3:
+	default:
+	break;}
+
+	var colorsRGB = [];
+	for (var i = 0; i < colors.length; i++)
+	{
+		colorsRGB[i] = color_to_rgb(colors[i], input);
+	}
+
+	var name = "blend";
+	return linearSegmentedColorMapFromList(name, colorsRGB);
+
+}
+
+function linearSegmentedColorMapFromList(name, colors)
+{
+	// from Python module, Matplotlib, with more limited functionality
+
+	var vals = linsp(0.0, 1.0, colors.length);
+
+	var jsonText = '{ "dictArray" : ['
+
+	for (var i = 0; i < colors.length; i++)
+	{
+		var r 
+
+		var textToAdd = "";
+		if (i != 0)
+		{
+			// add with start comma; else without
+			textToAdd += ', ';
+		}
+		textToAdd += '{ "red": "' + /*red value*/;
+		textToAdd += '", "green": "' + /*green value*/;
+		textToAdd += '", "blue": "' + /*blue value*/;
+		textToAdd += '", "alpha": "' + /*alpha value*/;
+		textToAdd += '" }';
+
+		jsonText += textToAdd;
+	}
+	jsonText += "] }";
+
+	var cdict = JSON.parse(jsonText).dictArray;
+
+	return linearSegmented(name, cdict, 256, 1.0);
+
+}
+
+function cubehelix_palette(n_colors, start, rot, gamma, hue, light, dark, reverse)
+{
+	// from Python module, Seaborn
+
+	switch (arguments.length){ // emulate function overloading
+	case 0:
+		arguments[0] = 6;
+		arguments[1] = 0;
+		arguments[2] = 0.4;
+		arguments[3] = 1.0;
+		arguments[4] = 0.8;
+		arguments[5] = 0.85;
+		arguments[6] = 0.15;
+		arguments[7] = false; 
+	case 1:
+		arguments[1] = 0;
+		arguments[2] = 0.4;
+		arguments[3] = 1.0;
+		arguments[4] = 0.8;
+		arguments[5] = 0.85;
+		arguments[6] = 0.15;
+		arguments[7] = false;
+	case 2:
+		arguments[2] = 0.4;
+		arguments[3] = 1.0;
+		arguments[4] = 0.8;
+		arguments[5] = 0.85;
+		arguments[6] = 0.15;
+		arguments[7] = false;
+	case 3:
+		arguments[3] = 1.0;
+		arguments[4] = 0.8;
+		arguments[5] = 0.85;
+		arguments[6] = 0.15;
+		arguments[7] = false;
+	case 4:
+		arguments[4] = 0.8;
+		arguments[5] = 0.85;
+		arguments[6] = 0.15;
+		arguments[7] = false;
+	case 5:
+		arguments[5] = 0.85;
+		arguments[6] = 0.15;
+		arguments[7] = false;
+	case 6:
+		arguments[6] = "0.15";
+		arguments[7] = false; 
+	case 7:
+		arguments[7] = false; 
+	case 8:
+	default:
+	break;}
+
+	// this block (creation of rgbArray) from Python module, Matplotlib
+	function get_color(po, p1) //TODO what is x?
+	{
+		var xg = Math.pow(x, gamma);
+		var amplitude = (hue * xg * (1-xg)) / 2;
+		var phi = 2 * Math.PI * ((start/3) + rot * x);
+		return (xg + amplitude * (p0*Math.cos(phi) + p1*Math.sin(phi)));
+	}
+
+	//TODO this is incorrect: get_color is actually supposed to function as a "closure," i.e. a function that returns a function
+	//so "red" in the array is actually a FUNCTION that TAKES x, as created by get_color(-0.14, 1.78)
+	//rather than hard values
+	var rgbArray = [(get_color(-0.14861, 1.78277)), //red		// result of mpl._cm.cubehelix(gamma, s, r, h)
+		(get_color(-0.29277, -0.90649)),			// green
+		(get_color(-1.97294, 0.0))];				// blue
+
+	var cmap = linearSegmented("cubehelix", cdict);
+	var x = linspace(light, dark, n_colors);
+
+	//TODO basically all of this
+	var pal;
+	/*
+	pal = cmap(x)[:, :3].tolist()      // [:] means whole string, [:3] means beginning up to but not including 3
+    if reverse:
+        pal = pal[::-1]
+	*/
+
+	return pal;
+
+}
 /*
-def diverging_palette(h_neg, h_pos, s=75, l=50, sep=10, n=6, center="light",
-                      as_cmap=False):
-
-    palfunc = dark_palette if center == "dark" else light_palette
-    neg = palfunc((h_neg, s, l), 128 - (sep / 2), reverse=True, input="husl")
-    pos = palfunc((h_pos, s, l), 128 - (sep / 2), input="husl")
-    midpoint = dict(light=[(.95, .95, .95, 1.)],
-                    dark=[(.133, .133, .133, 1.)])[center]
-    mid = midpoint * sep
-    pal = blend_palette(np.concatenate([neg, mid,  pos]), n, as_cmap=as_cmap)
-    return pal
-
-    """Make a diverging palette between two HUSL colors.
-
-    If you are using the IPython notebook, you can also choose this palette
-    interactively with the :func:`choose_diverging_palette` function.
-
-    Parameters
-    ----------
-    h_neg, h_pos : float in [0, 359]
-        Anchor hues for negative and positive extents of the map.
-    s : float in [0, 100], optional
-        Anchor saturation for both extents of the map.
-    l : float in [0, 100], optional
-        Anchor lightness for both extents of the map.
-    n : int, optional
-        Number of colors in the palette (if not returning a cmap)
-    center : {"light", "dark"}, optional
-        Whether the center of the palette is light or dark
-    as_cmap : bool, optional
-        If true, return a matplotlib colormap object rather than a
-        list of colors.
-
-    Returns
-    -------
-    palette or cmap : seaborn color palette or matplotlib colormap
-        List-like object of colors as RGB tuples, or colormap object that
-        can map continuous values to colors, depending on the value of the
-        ``as_cmap`` parameter.
-
-    See Also
-    --------
-    dark_palette : Create a sequential palette with dark values.
-    light_palette : Create a sequential palette with light values.
-
-    Examples
-    --------
-
-    Generate a blue-white-red palette:
-
-    .. plot::
-        :context: close-figs
-
-        >>> import seaborn as sns; sns.set()
-        >>> sns.palplot(sns.diverging_palette(240, 10, n=9))
-
-    Generate a brighter green-white-purple palette:
-
-    .. plot::
-        :context: close-figs
-
-        >>> sns.palplot(sns.diverging_palette(150, 275, s=80, l=55, n=9))
-
-    Generate a blue-black-red palette:
-
-    .. plot::
-        :context: close-figs
-
-        >>> sns.palplot(sns.diverging_palette(250, 15, s=75, l=40,
-        ...                                   n=9, center="dark"))
-
-    Generate a colormap object:
-
-    .. plot::
-        :context: close-figs
-
-        >>> from numpy import arange
-        >>> x = arange(25).reshape(5, 5)
-        >>> cmap = sns.diverging_palette(220, 20, sep=20, as_cmap=True)
-        >>> ax = sns.heatmap(x, cmap=cmap)
-
-    """
 
 /* //TODO remaining functions to translate/figure out
+//ALSO NEED TO FIND
+colorConverter.to_rgba(color) (from Matplotlib) ((JENNA SAYS: will call this convertToRGBA))
+LinearSegmentedColormap(name, cdict, N, gamma) (from Matplob lib) ((JENNA SAYS: will call this linearSegmented))
+//end need to find
+
+
 color brewer palettes
 
 def xyz_to_rgb(triple):
@@ -519,7 +588,7 @@ def xyz_to_rgb(triple):
     return list(map(from_linear, xyz))
 def dot_product(a, b):
    	return sum(map(operator.mul, a, b))
-def set_hls_values(color, h=None, l=None, s=None): ((JENNA SAYS: for JS implementation, setting h/l/s defaults to 0s))
+def set_hls_values(color, h=None, l=None, s=None): ((JENNA SAYS: for JS implementation, setting h/l/s defaults to 0's))
     rgb = mplcol.colorConverter.to_rgb(color)
     vals = list(colorsys.rgb_to_hls(*rgb))
     for i, val in enumerate([h, l, s]):

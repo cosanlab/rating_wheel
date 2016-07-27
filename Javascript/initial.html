@@ -12,6 +12,7 @@
 }
 
 </style>
+<p id="display"></p>
 <svg></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -254,7 +255,12 @@ var circlesAtt = circles
 	.attr("cy", function (d) { return d.y_pos; })
 	.attr("r", function (d) { return d.radius; })
 	.style("fill", function (d) {
-		return catInfo[d.cat][1]; });
+		return catInfo[d.cat][1]; })
+	// NEW
+	.on("click", circlesOnClick)
+	.on("mouseover", circlesOnMouseover)
+	.on("mouseout", circlesOnMouseout);
+
 var texts = svgContainer.append("g")
 	.selectAll("text")
 	.data(textPos)
@@ -296,24 +302,102 @@ var textsTransform = texts.
 		{
 			// i = 5 to i = 11
 			var difference = -thisWidth + maxTextWidth/2;
-			document.write("Applying left shift to " + catInfo[i][0] + "<br>");
+			//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
 			return "translate(" + difference + "," + maxTextHeight + ")";	
 		}
 		else if (i != fourthOfCats && i != c - fourthOfCats)
 		{
 			// i != 3 and i != 11
 			var summed = thisWidth + maxTextWidth/2;
-			document.write("Applying right shift to " + catInfo[i][0] + "<br>");
+			//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
 			return "translate(" + summed + "," + maxTextHeight + ")";		
 		}
 		else
 		{
-			document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
+			//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
 			return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
 		}
 	});
 var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
 var circlesTransform = circles.
 	attr("transform", circlesTransString);
+
+// NEW
+function circlesOnClick(d, i)
+{
+	var textToShow = "Emotion clicked: " + d.cat + " (lvl " + d.intens + ")";
+	alert(textToShow);
+}
+
+/*function circlesOnMouseover(d, i)
+{
+	var currCircle = d3.select(this);
+	currCircle.style("fill", "black");
+}*/
+function circlesOnMouseover(d, i)
+{
+	pulsate(d, i);
+
+	var thisCat = d.cat;
+	var currCatCircles = d3.selectAll("circle").filter(
+		function(d, i)
+		{
+			return d.cat == thisCat;
+		});
+	currCatCircles.style("fill", "black");	
+}
+
+function circlesOnMouseout(d, i)
+{
+	var thisCat = d.cat;
+	var currCatCircles = d3.selectAll("circle").filter(
+		function(d, i)
+		{
+			return d.cat == thisCat;
+		});
+	currCatCircles.style("fill", function (d) {
+		return catInfo[d.cat][1]; })	
+}
+
+function pulsate(d, i)
+{
+	var hiLiteCircle = svgContainer.select("g").append("circle");
+	hiLiteCircle
+		.attr("id", "hilite")
+		.style("fill", "white")
+		.style("opacity", 0.35)
+		.attr("cx", function (d) { return d.x_pos; })
+		.attr("cy", function (d) { return d.y_pos; })	
+
+	(function repeat() {
+
+		hiLiteCircle = transition()
+			.duration(2000)
+			.attr("r", function (d) { return d.radius * 0.9; })
+			.transition()
+			.duration(2000)
+			.attr("r", function (d) { return d.radius * p * p; })
+			.ease('sine')
+			.each("end", repeat);
+
+	})();
+
+
+		/*
+	.attr("r", function (d) { return d.radius; })
+		var circle = svg.select("circle");
+			(function repeat() {
+				circle = circle.transition()
+					.duration(2000)
+					.attr("stroke-width", 20)
+					.attr("r", 10)
+					.transition()
+					.duration(2000)
+					.attr('stroke-width', 0.5)
+					.attr("r", 200)
+					.ease('sine')
+					.each("end", repeat);
+			})();*/
+}
 
 </script>

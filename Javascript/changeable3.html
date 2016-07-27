@@ -309,37 +309,41 @@ function drawWheel(bigR, c, t, p, g, s, q, fSize)
 	});
 
 	var svgContainerTransform = svgContainer.
-		attr("width", (bigR * 2) + r + 3*maxTextWidth).
-		attr("height", (bigR * 2) + r + 3*maxTextHeight);
+	attr("width", (bigR * 2) + r + 3*maxTextWidth).
+	attr("height", (bigR * 2) + r + 3*maxTextHeight);
 
-	var textsTransString = "translate(0," + maxTextHeight + ")"; 
 	var fourthOfCats = Math.round((c+1)/4);
-	var textsTransform = texts.
-		attr("transform", function(d, i) {
+	var textsTransform = texts
+		.attr("x", function(d, i) {
 			var thisWidth = this.getBBox().width / 2;
 			if (i > fourthOfCats && i < c - fourthOfCats)
 			{
-				// i = 5 to i = 11
 				var difference = -thisWidth + maxTextWidth/2;
-				//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
-				return "translate(" + difference + "," + maxTextHeight + ")";	
+				return d[0] + difference;
 			}
 			else if (i != fourthOfCats && i != c - fourthOfCats)
 			{
-				// i != 3 and i != 11
 				var summed = thisWidth + maxTextWidth/2;
-				//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
-				return "translate(" + summed + "," + maxTextHeight + ")";		
+				return d[0] + summed;
 			}
 			else
 			{
-				//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
-				return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
+				return d[0] + (maxTextWidth*0.75 - thisWidth);
 			}
+		})
+		.attr("y", function(d, i) {
+			return d[1] + maxTextHeight;
 		});
 	var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
-	var circlesTransform = circles.
-		attr("transform", circlesTransString);
+	var circlesTransform = circles
+		.attr("cx", function(d, i)
+			{
+				return d.x_pos + (maxTextWidth*0.75);
+			})
+		.attr("cy", function(d, i)
+			{
+				return d.y_pos + maxTextHeight;
+			});
 }
 
 // initial set up
@@ -644,33 +648,37 @@ function updateAll()
 		attr("width", (bigR * 2) + r + 3*maxTextWidth).
 		attr("height", (bigR * 2) + r + 3*maxTextHeight);
 
-	var textsTransString = "translate(0," + maxTextHeight + ")"; 
 	var fourthOfCats = Math.round((c+1)/4);
-	var textsTransform = texts.
-		attr("transform", function(d, i) {
+	var textsTransform = texts
+		.attr("x", function(d, i) {
 			var thisWidth = this.getBBox().width / 2;
 			if (i > fourthOfCats && i < c - fourthOfCats)
 			{
-				// i = 5 to i = 11
 				var difference = -thisWidth + maxTextWidth/2;
-				//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
-				return "translate(" + difference + "," + maxTextHeight + ")";	
+				return d[0] + difference;
 			}
 			else if (i != fourthOfCats && i != c - fourthOfCats)
 			{
-				// i != 3 and i != 11
 				var summed = thisWidth + maxTextWidth/2;
-				//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
-				return "translate(" + summed + "," + maxTextHeight + ")";		
+				return d[0] + summed;
 			}
 			else
 			{
-				//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
-				return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
+				return d[0] + (maxTextWidth*0.75 - thisWidth);
 			}
+		})
+		.attr("y", function(d, i) {
+			return d[1] + maxTextHeight;
 		});
 	var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
-	var circlesTransform = circles.
-		attr("transform", circlesTransString);
+	var circlesTransform = circles
+		.attr("cx", function(d, i)
+			{
+				return d.x_pos + (maxTextWidth*0.75);
+			})
+		.attr("cy", function(d, i)
+			{
+				return d.y_pos + maxTextHeight;
+			});
 }
 </script>
