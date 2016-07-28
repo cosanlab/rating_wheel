@@ -318,15 +318,18 @@ function drawWheel(bigR, c, t, p, g, s, q, fSize, cSize)
 	attr("width", (bigR * 2) + r + 3*maxTextWidth).
 	attr("height", (bigR * 2) + r + 3*maxTextHeight);
 
+	// create central text
 	var absCenter = bigR + r/2 + (3*maxTextHeight)/2;
 	var absCenterX = absCenter + (0.75*maxTextWidth);
 	var absCenterY = absCenter + maxTextHeight;
-	var centerTextEle = d3.selectAll("text").append("text")
+	var centerTextEle = svgContainer.append("g").append("text");
+	var centerTextEleAttr = centerTextEle
 		.attr("x", absCenterX)
 		.attr("y", absCenterY)
 		.style("fill", "black")
 		.style("font-family", fontFam)
 		.style("font-size", cSize)
+		.attr("id", "center")
 		.text(centerText);
 
 	var fourthOfCats = Math.round((c+1)/4);
@@ -615,12 +618,21 @@ function updateAll()
 	var textsDelete = svgContainer.selectAll("text")
 		.filter(function(d, i)
 			{
+				return d3.select(this).attr("id") != "center";
+			})
+		.filter(function(d, i)
+			{
 				return i > c - 1;
 			})
 		.remove();
 
 	//add in newly needed circles and texts
-	var circleCount = svgContainer.selectAll("circle").size();
+	var circleCount = svgContainer.selectAll("circle")
+		.filter(function(d, i)
+			{
+				return d3.select(this).attr("id") == "center";
+			})
+		.size();
 	for (var lmno = circleCount; lmno < allPoints.length; lmno++)
 	{
 		svgContainer.select("g").append("circle");
@@ -643,7 +655,12 @@ function updateAll()
 			else { return 0.001; }})
 		.style("fill", function (d) { return catInfo[d.cat][1]; });
 
-	var texts = svgContainer.selectAll("text").data(textPos)
+	var texts = svgContainer.selectAll("text")
+		.filter(function(d, i)
+			{
+				return d3.select(this).attr("id") != "center";
+			});
+	var textsAtt = text.data(textPos)
 		.text(function (d, i) { return catInfo[i][0]; })
 		.attr("x", function (d, i) { return d[0];})
 		.attr("y", function (d) { return d[1]; })
@@ -670,10 +687,16 @@ function updateAll()
 		attr("width", (bigR * 2) + r + 3*maxTextWidth).
 		attr("height", (bigR * 2) + r + 3*maxTextHeight);
 
+	// center text
 	var absCenter = bigR + r/2 + (3*maxTextHeight)/2;
 	var absCenterX = absCenter + (0.75*maxTextWidth);
 	var absCenterY = absCenter + maxTextHeight;
-	var centerTextEle = d3.selectAll("text").append("text")
+	var centerTextEle = svgContainer.selectAll("text")
+		.filter(function(d)
+			{
+				return d3.select(this).attr("id") == "center";
+			});
+	var centerTextEleAttr = centerTextEle
 		.attr("x", absCenterX)
 		.attr("y", absCenterY)
 		.style("fill", "black")

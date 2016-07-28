@@ -324,26 +324,29 @@ var outlineAtt = outline
 // arcs representing each category's sector
 // draw triangular slices
 var catArcs = svgContainer.append("g");
-var catTris = catArcs.selectAll("path").data(justOuter).enter().append("path");
+var catTris = catArcs.selectAll("polygon").data(justOuter).enter().append("polygon");
 var catTrisAtt = catTris
 	.style("fill", function(d, i)
 		{
 			return catInfo[i][1];
 		})
 	//.style("fill-opacity", 0.0)
-	.attr("d", function (d, i)
+	.attr("points", function (d, i)
 		{
-			var m = slope(outlineCenterX, outlineCenterY, d[1], d[2]);
+			var m = slope(0, 0, d[1], d[2]);
 			var bothX = findXPoints(m, d[1], d[0]);
 			var yPos = findYPoint(m, d[1], d[2], bothX[0]);
 			var yNeg = findYPoint(m, d[1], d[2], bothX[1]);
-			var toText = "M" + outlineCenterX + "," + outlineCenterY + " ";
-			toText += "L" + bothX[0] + "," + yPos + " ";
-			toText += "L" + bothX[1] + "," + yNeg + " ";
+
+			var xPosAdj = bothX[0] + (bigR + (maxTextWidth*0.75));
+			var xNegAdj = bothX[1] + (bigR + (maxTextWidth*0.75));
+			var yPosAdj = findYPoint(m, d[1], d[2], bothX[0]) + (bigR + maxTextHeight);
+			var yNegAdj = findYPoint(m, d[1], d[2], bothX[1]) + (bigR + maxTextHeight); 
+			var toText = Math.round(outlineCenterX, 4) + "," + Math.round(outlineCenterY, 4) + " ";
+			toText += Math.round(xPosAdj, 4) + "," + Math.round(yPosAdj, 4) + " ";
+			toText += Math.round(xNegAdj, 4) + "," + Math.round(yNegAdj, 4) + " ";
 			toText += "Z";
 
-			//TODO
-			document.write(toText);
 			return toText;
 		});
 

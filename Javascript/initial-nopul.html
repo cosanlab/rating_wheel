@@ -338,7 +338,7 @@ var clickFocus = [-1, -1];
 function circleMouseOver(d, i)
 {
 	var thisCat = d.cat;
-	var thisColor = d3.select(this).style("fill");
+	var thisColor = catInfo[d.cat][1];
 	var thisColorParse = d3.color(thisColor).rgb();
 	var changed = toHSL(thisColorParse, 1.75, 0.25);
 	
@@ -347,23 +347,11 @@ function circleMouseOver(d, i)
 			return d.cat == thisCat;
 		});
 
-	allThisCat.filter(function(d)
-		{
-			var currentOne = d3.select(this);
-			return currentOne.style("stroke-width") != 0; // only apply to visually "selected" elements
-		})
+	allThisCat
 		.transition()
 		.duration("200")
+		.style("fill", changed)
 		.style("stroke", changed);
-	
-	allThisCat.filter(function (d)
-		{
-			var currentOne = d3.select(this);
-			return currentOne.style("stroke-width") == 0; // only apply to not visually "selected" elements
-		})
-		.transition()
-		.duration("200")
-		.style("fill", changed);
 
 	d3.select(this).attr("r", function(d) { return d.radius * 1.2; });
 
@@ -400,9 +388,8 @@ function circleMouseClick(d, i)
 				});
 		// visually "undo" selection
 		currSelect
-			.style("fill", function (d) {
-				return catInfo[d.cat][1]; })
-			.style("stroke-width", 1);
+			.style("fill-opacity", 1.0)
+			.style("stroke-width", 0);
 	}
 
 	// update values of clickFocus
@@ -410,7 +397,7 @@ function circleMouseClick(d, i)
 	// visually indicate clickFocus
 
 	clicked
-		.style("fill", "none")
+		.style("fill-opacity", 0.0)
 		.style("stroke-width", function(d)
 			{
 				return d.radius * 0.25;
