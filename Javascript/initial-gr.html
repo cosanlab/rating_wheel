@@ -13,6 +13,15 @@
 
 </style>
 <p id="display"></p> <!--TODO remove -->
+<!--<svg width="200" height="200" viewBox="0 0 200 200">
+  <g transform="translate(100,100)" stroke="#000" stroke-width="2">
+    <path d="M0 0 -70 70 A99 99 0 0 1 -70-70 Z" fill="#f00"/>
+    <path d="M0 0 -70-70 A99 99 0 0 1 70-70 Z" fill="#080"/>
+    <path d="M0 0 70-70 A99 99 0 0 1 70 70 Z" fill="#dd0"/>
+    <path d="M0 0 70 70 A99 99 0 0 1 -70 70 Z" fill="#04e"/>
+  </g>
+</svg> -->
+<!-- TODO remove -->
 <svg></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -197,11 +206,12 @@ for (var i = 0; i < t+1; i++)
 
 var allPoints = []; // array of arrays, where each entry is a point such that indexes 0=radius, 1=x pos, 2=y pos, 3=cat, 4=intens
 var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
-var justOuter = []; // array of arrays, where each entry is a point such that index 0=radius, 1=x pos, 2=y pos
+var justOuter = []; // array of arrays, where each entry is a point such that index 0=radius, 1=x pos, 2=y pos, 3=start theta, 4=end theta
 
 for (var n = 0; n < c; n++)
 {
 	var trigVal = ((2 * Math.PI) / c) * n;
+	var trigValNext = ((2 * Math.PI) / c) * (n+1);
 
 	//TODO definitely overhaul this section
 	var textX = ((bigR + s) * Math.cos(trigVal) * manSclSpc[0]) + bigR;
@@ -219,7 +229,7 @@ for (var n = 0; n < c; n++)
 		var x = ((bigR - z) * Math.cos(trigVal) * manSclSpc[l]) + bigR;
 		var y = ((bigR - z) * Math.sin(trigVal) * manSclSpc[l]) + bigR;
 
-		if (l == 0) { justOuter.push([radius, x, y]); }
+		if (l == 0) { justOuter.push([radius, x, y, (trigVal * (180 / Math.PI)), (trigValNext * (180 / Math.PI))]); }
 		allPoints.push([radius, x, y, n, l]);
 	}
 }
@@ -323,30 +333,59 @@ var outlineAtt = outline
 
 // arcs representing each category's sector
 // draw triangular slices
+
 var catArcs = svgContainer.append("g");
-var catTris = catArcs.selectAll("polygon").data(justOuter).enter().append("polygon");
+var catTris = catArcs.selectAll("path").data(justOuter).enter().append("path");
 var catTrisAtt = catTris
 	.style("fill", function(d, i)
 		{
 			return catInfo[i][1];
 		})
 	//.style("fill-opacity", 0.0)
-	.attr("points", function (d, i)
+	.attr("d", function (d, i)
 		{
 			var m = slope(0, 0, d[1], d[2]);
-			var bothX = findXPoints(m, d[1], d[0]);
-			var yPos = findYPoint(m, d[1], d[2], bothX[0]);
-			var yNeg = findYPoint(m, d[1], d[2], bothX[1]);
+			var xPos = findXPoints(m, d[1], d[0])[0];
+			var xNeg = findXPoints(m, d[1], d[0])[1];
+			var yPos = findYPoint(m, d[1], d[2], xPos);
+			var yNeg = findYPoint(m, d[1], d[2], xNeg);
 
-			var xPosAdj = bothX[0] + (bigR + (maxTextWidth*0.75));
-			var xNegAdj = bothX[1] + (bigR + (maxTextWidth*0.75));
-			var yPosAdj = findYPoint(m, d[1], d[2], bothX[0]) + (bigR + maxTextHeight);
-			var yNegAdj = findYPoint(m, d[1], d[2], bothX[1]) + (bigR + maxTextHeight); 
+			var xPosAdj = xPos + (bigR + (maxTextWidth*0.75));
+			var xNegAdj = xNeg + (bigR + (maxTextWidth*0.75));
+			var yPosAdj = yPos + (bigR + maxTextHeight);
+			var yNegAdj = yNeg + (bigR + maxTextHeight); 
+
+			/*
 			var toText = Math.round(outlineCenterX, 4) + "," + Math.round(outlineCenterY, 4) + " ";
 			toText += Math.round(xPosAdj, 4) + "," + Math.round(yPosAdj, 4) + " ";
 			toText += Math.round(xNegAdj, 4) + "," + Math.round(yNegAdj, 4) + " ";
 			toText += "Z";
+			*/
 
+			var toText = "M" + Math.round(outlineCenterX, 4) + " " + Math.round(outlineCenterY, 4) + " ";
+			toText += Math.round(d[i][1], 4) + " " + Math.round(d[i][2], 4) + " ";
+
+			if (i != c-1)
+			{
+				toText += "A" + d[0][3] + " " + d[0][4] + " 0 0 1 ";	
+			}
+			else
+			{
+				toText += "A" + d[i+1][3] + " " + d[i+1][4] + " 0 0 1 ";					
+			}
+			
+			toText += Math.round(d[i][1], 4) + " " + Math.round(d[i][2], 4) + " ";
+			toText += "z";
+
+			/*
+			var toText = "M" + Math.round(outlineCenterX, 4) + " " + Math.round(outlineCenterY, 4) + " ";
+			toText += Math.round(xPosAdj, 4) + " " + Math.round(yPosAdj, 4) + " ";
+			toText += "A" + d[3] + " " + d[4] + " 0 0 1 ";
+			toText += Math.round(xNegAdj, 4) + " " + Math.round(yNegAdj, 4) + " ";
+			toText += "z";
+			*/
+			//TODO remove
+			//alert("Find next d as: " + toText);
 			return toText;
 		});
 

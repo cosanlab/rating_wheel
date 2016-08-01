@@ -12,7 +12,6 @@
 }
 
 </style>
-<p id="display"></p> <!--TODO remove -->
 <svg></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -377,6 +376,7 @@ function circleMouseClick(d, i)
 	var clicked = d3.select(this);
 	if (clickFocus[0] != -1 && clickFocus[1] != -1) // current selection exists
 	{
+
 		var currSelect = d3.selectAll("circle")
 			.filter(function(d)
 				{
@@ -392,16 +392,33 @@ function circleMouseClick(d, i)
 			.style("stroke-width", 0);
 	}
 
-	// update values of clickFocus
-	clickFocus = [d.cat, d.intens];
-	// visually indicate clickFocus
+	clicked.each(function(d)
+	{
+		// if this is the currently selected thing
+		if (d.cat == clickFocus[0] && d.intens == clickFocus[1])
+		{
+			//visually "undo" selection
+			clicked
+				.style("fill-opacity", 1.0)
+				.style("stroke-width", 0);
+			//reset clickFocus
+			clickFocus[0] = -1;
+			clickFocus[1] = -1;
+		}
 
-	clicked
-		.style("fill-opacity", 0.0)
-		.style("stroke-width", function(d)
-			{
-				return d.radius * 0.25;
-			});
+		else
+		{
+			//visually indicate selection
+			clicked
+				.style("fill-opacity", 0.0)
+				.style("stroke-width", function(d)
+					{
+						return d.radius * 0.25;
+					});	
+			//update clickFocus
+			clickFocus = [d.cat, d.intens];
+		}
+	});
 }
 
 function toHSL(rgbColor, satProp, briProp)
