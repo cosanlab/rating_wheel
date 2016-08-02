@@ -330,44 +330,261 @@ var outlineAtt = outline
 	.style("fill", "none")
 	.attr("id", "primary");
 
-// arcs representing each category's sector
-// draw triangular slices
+// create gradients for each category
+var centralColor = "white"; //TODO customizable?
+var gradients = svgContainer.append("defs");
 
+var centralInOut = gradients.append("radialGradient")
+	.attr("id", "central-fade")
+	.attr("cx", "50%")
+	.attr("fx", "50%")
+	.attr("cy", "50%")
+	.attr("fy", "50%")
+	.attr("r", "45%")
+	.attr("spreadMethod", "pad");
+.centralInOut.append("stop")
+	.attr("offset", "0%")
+	.attr("stop-color", centralColor)
+	.attr("stop-opacity", 1);
+centralInOut.append("stop")
+	.attr("offset", "100%")
+	.attr("stop-color", centralColor)
+	.attr("stop-opacity", 0);
+
+for (var i = 0; i < c; i++)
+{
+	var colorName = "coloration-" + i; //gradient going from main color to central color
+	var fadeOutName = "fadeOut-" + i; //gradient going from 100% main color to 0% main color; used with clip-long-hi
+	var fadeInName = "fadeIn-" + i; //gradient going from 0% main color to 100% main color; used with clip-long-lo
+
+	//coloration
+	var coloration = gradients.append("radialGradient")
+		.attr("id", colorName)
+		.attr("cx", "50%")
+		.attr("fx", "50%")
+		.attr("cy", "50%")
+		.attr("fy", "50%")
+		.attr("r", "45%")
+		.attr("spreadMethod", "pad");
+	coloration.append("stop")
+		.attr("offset", "0%")
+		.attr("stop-color", centralColor)
+		.attr("stop-opacity", 1);
+	coloration.append("stop")
+		.attr("offset", "100%")
+		.attr("stop-color", catInfo[i][1])
+		.attr("stop-opacity", 1);
+
+	//fade out
+	var nextColor = "black";
+	if (i != c - 1)
+	{
+		nextColor = catInfo[i+1][1];
+	}
+	else if (i == c - 1)
+	{
+		nextColor = catInfo[0][1];
+	}
+	gradients.append("linearGradient")
+		.attr("id", fadeOutName)
+		.attr("x1", "0%")
+		.attr("x2", "0%")
+		.attr("y1", "100%")
+		.attr("y2", "100%")
+		.attr("spreadMethod", "pad")
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 1)
+		.append("stop")
+			.attr("offset", "100%")
+			.attr("stop-color", nextColor)
+			.attr("stop-opacity", 1);
+
+	//fade in
+	gradients.append("linearGradient")
+		.attr("id", fadeInName)
+		.attr("x1", "0%")
+		.attr("x2", "0%")
+		.attr("y1", "0%")
+		.attr("y2", "0%")
+		.attr("spreadMethod", "pad")
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-opacity", 0)
+		.append("stop")
+			.attr("offset", "100%")
+			.attr("stop-opacity", 1);
+}
+
+
+
+/*
+svg.append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .style("fill", "url(#gradient)");
+*/
+
+
+// draw arcs representing each category's sector, for on-hover use
 var rotRad = Math.PI / 2; // rotation (in rad) beyond default d3 arc function
-var arcsTest = svgContainer.append("g")
-	.selectAll("path")
+var arcClipsFull = svgContainer.append("defs")
+	.selectAll("clipPath")
 	.data(justOuter).enter()
-	.append("path")
-	.attr("d", function(d, i)
+	.append("clipPath")
+	.attr("id", function(d, i)
 		{
-			var fullArc = d[4] - d[3];
-			var newStart = d[3] - (fullArc/2);
-			var newEnd = d[4] - (fullArc/2);
-			newStart *= (Math.PI / 180);
-			newEnd *= (Math.PI / 180);
+			return "clip-full-" + i;
+		});
+arcClipsFull.each(function(d, i)
+{
+	var thisClip = d3.select(this);
+	
+	var fullArc = d[4] - d[3];
+	var newStart = d[3] - (fullArc/2);
+	var newEnd = d[4] - (fullArc/2);
+	newStart *= (Math.PI / 180);
+	newEnd *= (Math.PI / 180);
 
-			var newArc = d3.arc()
-		    	.innerRadius(0)
-		    	.outerRadius(bigR)
-		    	//.startAngle((d[3] * (Math.PI / 180)) + rotRad)
-		    	//.endAngle((d[4] * (Math.PI / 180)) + rotRad);
-		    	.startAngle(newStart + rotRad)
-		    	.endAngle(newEnd + rotRad);
-		    return newArc();
-		})
-	.style("stroke", function(d, i)
+	var newArc = d3.arc()
+		.innerRadius(0)
+		.outerRadius(bigR)
+	   	.startAngle(newStart + rotRad)
+    	.endAngle(newEnd + rotRad);
+
+    var thisArc = thisClip.append("path")
+    	.attr("d", newArc());
+});
+var arcClipsShort = svgContainer.append("defs")
+	.selectAll("clipPath")
+	.data(justOuter).enter()
+	.append("clipPath")
+	.attr("id", function(d, i)
 		{
-			return catInfo[i][1];
+			return "clip-short-" + i;
+		});
+arcClipsShort.each(function(d, i)
+{
+	var thisClip = d3.select(this);
+	
+	var fullArc = d[4] - d[3];
+	var newStart = d[3] - (fullArc / 4);
+	var newEnd = d[4] - (3*fullArc /4);
+	newStart *= (Math.PI / 180);
+	newEnd *= (Math.PI / 180);
+
+	var newArc = d3.arc()
+		.innerRadius(0)
+		.outerRadius(bigR)
+	   	.startAngle(newStart + rotRad)
+    	.endAngle(newEnd + rotRad);
+
+    var thisArc = thisClip.append("path")
+    	.attr("d", newArc());
+});
+var arcClipsLongLo = svgContainer.append("defs")
+	.selectAll("clipPath")
+	.data(justOuter).enter()
+	.append("clipPath")
+	.attr("id", function(d, i)
+		{
+			return "clip-long-lo-" + i;
+		});
+arcClipsLongLo.each(function(d, i)
+{
+	var thisClip = d3.select(this);
+	
+	var fullArc = d[4] - d[3];
+	var newStart = d[3] - fullArc; // start half a full sector's length backward 
+	var newEnd = d[3] - (fullArc/2); // end at corresponding short clip start
+
+	newStart *= (Math.PI / 180);
+	newEnd *= (Math.PI / 180);
+
+	var newArc = d3.arc()
+		.innerRadius(0)
+		.outerRadius(bigR)
+	   	.startAngle(newStart + rotRad)
+    	.endAngle(newEnd + rotRad);
+
+    var thisArc = thisClip.append("path")
+    	.attr("d", newArc());
+});
+
+var arcClipsLongHi = svgContainer.append("defs")
+	.selectAll("clipPath")
+	.data(justOuter).enter()
+	.append("clipPath")
+	.attr("id", function(d, i)
+		{
+			return "clip-long-hi-" + i;
+		});
+arcClipsLongHi.each(function(d, i)
+{
+	var thisClip = d3.select(this);
+
+	var fullArc = d[4] - d[3];
+	var newStart = d[4] - (3*fullArc / 4); // start at corresponding short clip end
+	var newEnd = d[4] - (fullArc/4); // end half a full sector's length forward
+
+	newStart *= (Math.PI / 180);
+	newEnd *= (Math.PI / 180);
+
+	var newArc = d3.arc()
+		.innerRadius(0)
+		.outerRadius(bigR)
+	   	.startAngle(newStart + rotRad)
+    	.endAngle(newEnd + rotRad);
+
+    var thisArc = thisClip.append("path")
+    	.attr("d", newArc());
+});
+
+var transString = "translate(" + (bigR + (maxTextWidth*0.75)) + "," + (bigR + maxTextHeight) + ")";
+arcClipsShort.attr("transform", transString);
+arcClipsLongLo.attr("transform", transString);
+arcClipsLongHi.attr("transform", transString);
+
+var arcColors = svgContainer.append("g")
+	.selectAll("circle")
+	.data(justOuter).enter()
+	.append("circle")
+	.attr("cx", outlineCenterX)
+	.attr("cy", outlineCenterY)
+	.attr("r", bigR)
+	.style("clip-path", function(d, i)
+		{
+			return "url(#clip-short-" + i + ")";
 		})
+	.style("fill", function(d, i)
+		{
+			return "url(#coloration-" + i + ")";
+		})
+	.style("fill-opacity", 1); //TODO change back to 0
+var arcFadeHi = svgContainer.append("g")
+	.selectAll("circle")
+	.data(justOuter).enter()
+	.append("circle")
+	.attr("cx", outlineCenterX)
+	.attr("cy", outlineCenterY)
+	.attr("r", bigR)
+	.style("clip-path", function(d, i)
+		{
+			return "url(#clip-long-hi-" + i + ")";
+		})
+	/*
 	.style("fill", function(d, i)
 		{
 			return catInfo[i][1];
 		})
-	.style("stroke-opacity", 1) //TODO change back to 0
-	.style("fill-opacity", 1); //TODO change back to 0 
+	*/
+	.style("fill", function(d, i)
+		{
+			return "url(#fadeOut-" + i + ")";
+		})
+	.style("fill-opacity", 1); //TODO change back to 0
 
-var transString = "translate(" + (bigR + (maxTextWidth*0.75)) + "," + (bigR + maxTextHeight) + ")";
-arcsTest.attr("transform", transString);
 
 // mouse event handlers
 function toHSL(rgbColor, satProp, briProp)

@@ -330,9 +330,139 @@ var outlineAtt = outline
 	.style("fill", "none")
 	.attr("id", "primary");
 
-// arcs representing each category's sector
-// draw triangular slices
+// create gradients for each category
+var centralColor = "white"; //TODO customizable?
+var gradients = svgContainer.append("defs");
 
+for (var i = 0; i < c; i++)
+{
+	var colorName = "coloration-" + i; //gradient going from main color to central color
+	var fadeOutName = "fadeOut-" + i; //gradient going from 100% main color to 0% main color
+	var fadeInName = "fadeIn-" + i; //gradient going from 0% main color to 100% main color
+
+	//coloration
+	var coloration = gradients.append("radialGradient")
+		.attr("id", colorName)
+		.attr("cx", "50%")
+		.attr("fx", "50%")
+		.attr("cy", "50%")
+		.attr("fy", "50%")
+		.attr("r", "45%")
+		.attr("spreadMethod", "pad");
+	coloration.append("stop")
+		.attr("offset", "0%")
+		.attr("stop-color", centralColor)
+		.attr("stop-opacity", 1);
+	coloration.append("stop")
+		.attr("offset", "100%")
+		.attr("stop-color", catInfo[i][1])
+		.attr("stop-opacity", 1);
+
+	//fade out
+	gradients.append("linearGradient")
+		.attr("id", fadeOutName)
+		.attr("x1", "0%")
+		.attr("x2", "0%")
+		.attr("y1", "0%")
+		.attr("y2", "0%")
+		.attr("spreadMethod", "pad")
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 0)
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 0)
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 0);
+
+	//fade in
+	gradients.append("linearGradient")
+		.attr("id", fadeInName)
+		.attr("x1", "0%")
+		.attr("x2", "0%")
+		.attr("y1", "0%")
+		.attr("y2", "0%")
+		.attr("spreadMethod", "pad")
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 0)
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 0)
+		.append("stop")
+			.attr("offset", "0%")
+			.attr("stop-color", "black")
+			.attr("stop-opacity", 0);
+}
+
+
+
+/*
+svg.append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .style("fill", "url(#gradient)");
+*/
+
+
+// draw arcs representing each category's sector, for on-hover use
+var rotRad = Math.PI / 2; // rotation (in rad) beyond default d3 arc function
+var arcClips = svgContainer.append("defs")
+	.selectAll("clipPath")
+	.data(justOuter).enter()
+	.append("clipPath")
+	.attr("id", function(d, i)
+		{
+			return "clipping-" + i;
+		});
+arcClips.each(function(d, i)
+{
+	var thisClip = d3.select(this);
+	
+	var fullArc = d[4] - d[3];
+	var newStart = d[3] - (fullArc/2);
+	var newEnd = d[4] - (fullArc/2);
+	newStart *= (Math.PI / 180);
+	newEnd *= (Math.PI / 180);
+
+	var newArc = d3.arc()
+		.innerRadius(0)
+		.outerRadius(bigR)
+	   	.startAngle(newStart + rotRad)
+    	.endAngle(newEnd + rotRad);
+
+    var thisArc = thisClip.append("path")
+    	.attr("d", newArc());
+});
+var transString = "translate(" + (bigR + (maxTextWidth*0.75)) + "," + (bigR + maxTextHeight) + ")";
+arcClips.attr("transform", transString);
+
+var arcColors = svgContainer.append("g")
+	.selectAll("circle")
+	.data(justOuter).enter()
+	.append("circle")
+	.attr("cx", outlineCenterX)
+	.attr("cy", outlineCenterY)
+	.attr("r", bigR)
+	.style("clip-path", function(d, i)
+		{
+			return "url(#clipping-" + i + ")";
+		})
+	.style("fill", function(d, i)
+		{
+			return "url(#coloration-" + i + ")";
+		})
+	.style("fill-opacity", 1); //TODO change back to 0
+
+
+//TODO delete this section (puts black stroke on sectors to check gradient working)
+/*
 var rotRad = Math.PI / 2; // rotation (in rad) beyond default d3 arc function
 var arcsTest = svgContainer.append("g")
 	.selectAll("path")
@@ -355,19 +485,15 @@ var arcsTest = svgContainer.append("g")
 		    	.endAngle(newEnd + rotRad);
 		    return newArc();
 		})
-	.style("stroke", function(d, i)
-		{
-			return catInfo[i][1];
-		})
-	.style("fill", function(d, i)
-		{
-			return catInfo[i][1];
-		})
+	.style("stroke", "black")
+	.style("stroke-width", 5)
+	.style("fill", "none")
 	.style("stroke-opacity", 1) //TODO change back to 0
-	.style("fill-opacity", 1); //TODO change back to 0 
 
 var transString = "translate(" + (bigR + (maxTextWidth*0.75)) + "," + (bigR + maxTextHeight) + ")";
 arcsTest.attr("transform", transString);
+*/
+//TODO end delete this section
 
 // mouse event handlers
 function toHSL(rgbColor, satProp, briProp)
