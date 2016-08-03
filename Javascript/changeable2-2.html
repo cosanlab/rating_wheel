@@ -1,17 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<style>
-
-.chart div {
-  font: 10px sans-serif;
-  background-color: steelblue;
-  text-align: right;
-  padding: 3px;
-  margin: 1px;
-  color: white;
-}
-
-</style>
+<head>
+<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+</head>
 <body>
 	bigR: <input type="range" min="100" max="1000" step="10" id="sBigR">
 	cats: <input type="range" min="3" max="20" step ="1" id="sCategories"> <!-- TODO: temporary limit of 20, change back to 32(?) -->
@@ -21,13 +12,12 @@
 	gap: <input type="range" min="0.005" max="0.05" step = "0.005" id="sGap">
 	space: <input type="range" min="0" max="150" step = "1" id="sSpace">
 	center: <input type="range" min="-0.9" max="0.9" step="0.05" id="sCenter">
-	font: <input type="range" min="8" max="150" step="1" id="sFSize">
-	font: <input type="range" min="8" max="150" step="1" id="sCSize">
-	<br><br><br>
-	<div id="catInputs"></div>
 	<br>
+	<div id="catInputs"></div>
 	<svg></svg>
 </body>
+<script src="http://code.jquery.com/jquery.js"></script>
+<script src="js/bootstrap.min.js"></script>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
 
@@ -39,9 +29,6 @@ var pDef = 0.75; // proportion of (circle area / next biggest circle area)
 var gDef = 0.01; // gap between category sectors as [(gap size) / (circle size * c)]
 var sDef = 25; // space between same intensity levels (in pixels)
 var qDef = 0.25; // percentage larger (or if negative, smaller) than outside radius that center is
-var fSizeDef = 19; // size of font for text labels
-var cSizeDef = 19; // size of font for center text label only
-
 // setting default values
 document.getElementById("sBigR").value = bigRDef;
 document.getElementById("sCategories").value = cDef;
@@ -50,8 +37,7 @@ document.getElementById("sProportion").value = pDef;
 document.getElementById("sGap").value = gDef;
 document.getElementById("sSpace").value = sDef;
 document.getElementById("sCenter").value = qDef;
-document.getElementById("sFSize").value = fSizeDef;
-document.getElementById("sCSize").value = cSizeDef;
+
 
 var fontFam = "impact"; // CSS standard font family choice for text labels
 var preciR = 0.05; // precision (radius): increments of percentage to decrease radius while checking overlap
@@ -83,11 +69,9 @@ var catInfo = [
 	["fo","violet"], //18
 	["fum","violet"], //19
 ];
-// single string representing center text
-var centerText = "neutral";
 
 var svgContainer = d3.select("body").append("svg");
-function drawWheel(bigR, c, t, p, g, s, q, fSize, cSize)
+function drawWheel(bigR, c, t, p, g, s, q)
 {
 	var summa1 = 0;
 	for (i = 0; i < t+1; i++)
@@ -297,8 +281,7 @@ function drawWheel(bigR, c, t, p, g, s, q, fSize, cSize)
 			return d[0];})
 		.attr("y", function (d) { return d[1]; })
 		.style("fill", "black")
-		.style("font-family", fontFam)
-		.style("font-size", fSize);
+		.style("font-family", fontFam);
 
 	// adjust graph to suit text
 	var maxTextHeight = 0;
@@ -316,56 +299,41 @@ function drawWheel(bigR, c, t, p, g, s, q, fSize, cSize)
 	});
 
 	var svgContainerTransform = svgContainer.
-	attr("width", (bigR * 2) + r + 3*maxTextWidth).
-	attr("height", (bigR * 2) + r + 3*maxTextHeight);
+		attr("width", (bigR * 2) + r + 3*maxTextWidth).
+		attr("height", (bigR * 2) + r + 3*maxTextHeight);
 
-	var absCenter = bigR + r/2 + (3*maxTextHeight)/2;
-	var absCenterX = absCenter + (0.75*maxTextWidth);
-	var absCenterY = absCenter + maxTextHeight;
-	var centerTextEle = d3.selectAll("text").append("text")
-		.attr("x", absCenterX)
-		.attr("y", absCenterY)
-		.style("fill", "black")
-		.style("font-family", fontFam)
-		.style("font-size", cSize)
-		.text(centerText);
-
+	var textsTransString = "translate(0," + maxTextHeight + ")"; 
 	var fourthOfCats = Math.round((c+1)/4);
-	var textsTransform = texts
-		.attr("x", function(d, i) {
+	var textsTransform = texts.
+		attr("transform", function(d, i) {
 			var thisWidth = this.getBBox().width / 2;
 			if (i > fourthOfCats && i < c - fourthOfCats)
 			{
+				// i = 5 to i = 11
 				var difference = -thisWidth + maxTextWidth/2;
-				return d[0] + difference;
+				//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + difference + "," + maxTextHeight + ")";	
 			}
 			else if (i != fourthOfCats && i != c - fourthOfCats)
 			{
+				// i != 3 and i != 11
 				var summed = thisWidth + maxTextWidth/2;
-				return d[0] + summed;
+				//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + summed + "," + maxTextHeight + ")";		
 			}
 			else
 			{
-				return d[0] + (maxTextWidth*0.75 - thisWidth);
+				//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
 			}
-		})
-		.attr("y", function(d, i) {
-			return d[1] + maxTextHeight;
 		});
 	var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
-	var circlesTransform = circles
-		.attr("cx", function(d, i)
-			{
-				return d.x_pos + (maxTextWidth*0.75);
-			})
-		.attr("cy", function(d, i)
-			{
-				return d.y_pos + maxTextHeight;
-			});
+	var circlesTransform = circles.
+		attr("transform", circlesTransString);
 }
 
 // initial set up
-drawWheel(bigRDef, cDef, tDef, pDef, gDef, sDef, qDef, fSizeDef, cSizeDef);
+drawWheel(bigRDef, cDef, tDef, pDef, gDef, sDef, qDef);
 var catInputsTab = d3.select("#catInputs").append("table");
 
 var bigRCur = bigRDef;
@@ -375,8 +343,6 @@ var pCur = pDef;
 var gCur = gDef;
 var sCur = sDef;
 var qCur = qDef;
-var fSizeCur = fSizeDef;
-var cSizeCur = cSizeDef;
 
 d3.select("#sBigR").on("input", function() { updateR(+this.value); });
 d3.select("#sCategories").on("input", function() { updateC(+this.value); });
@@ -385,8 +351,6 @@ d3.select("#sProportion").on("input", function() { updateP(+this.value); });
 d3.select("#sGap").on("input", function() { updateG(+this.value); });
 d3.select("#sSpace").on("input", function() { updateS(+this.value); });
 d3.select("#sCenter").on("input", function() { updateQ(+this.value); });
-d3.select("#sFSize").on("input", function() { updateFS(+this.value); });
-d3.select("#sCSize").on("input", function() { updateCS(+this.value); });
 
 function updateR(sBigR) { bigRCur = sBigR; 
 	updateAll(); }
@@ -402,10 +366,6 @@ function updateS(sSpace) { sCur = sSpace;
 	updateAll(); }
 function updateQ(sCenter) { qCur = sCenter; 
 	updateAll(); }
-function updateFS(sFSize) { fSizeCur = sFSize; 
-	updateAll(); }
-function updateCS(sCSize) { cSizeCur = sCSize;
-	updateAll(); }
 
 function updateAll()
 {
@@ -416,9 +376,6 @@ function updateAll()
 	var g = gCur;
 	var s = sCur;
 	var q = qCur;
-	var fSize = fSizeCur;
-	var cSize = cSizeCur;
-	
 	var summa1 = 0;
 	for (i = 0; i < t+1; i++)
 	{
@@ -644,13 +601,12 @@ function updateAll()
 			else { return 0.001; }})
 		.style("fill", function (d) { return catInfo[d.cat][1]; });
 
-	var texts = svgContainer.selectAll("text").data(textPos).enter()
+	var texts = svgContainer.selectAll("text").data(textPos)
 		.text(function (d, i) { return catInfo[i][0]; })
 		.attr("x", function (d, i) { return d[0];})
 		.attr("y", function (d) { return d[1]; })
 		.style("fill", "black")
-		.style("font-family", fontFam)
-		.style("font-size", fSize);
+		.style("font-family", fontFam);
 
 	// adjust graph to suit text
 	var maxTextHeight = 0;
@@ -671,48 +627,33 @@ function updateAll()
 		attr("width", (bigR * 2) + r + 3*maxTextWidth).
 		attr("height", (bigR * 2) + r + 3*maxTextHeight);
 
-	var absCenter = bigR + r/2 + (3*maxTextHeight)/2;
-	var absCenterX = absCenter + (0.75*maxTextWidth);
-	var absCenterY = absCenter + maxTextHeight;
-	var centerTextEle = d3.selectAll("text").append("text")
-		.attr("x", absCenterX)
-		.attr("y", absCenterY)
-		.style("fill", "black")
-		.style("font-family", fontFam)
-		.style("font-size", cSize)
-		.text(centerText);
-
+	var textsTransString = "translate(0," + maxTextHeight + ")"; 
 	var fourthOfCats = Math.round((c+1)/4);
-	var textsTransform = texts
-		.attr("x", function(d, i) {
+	var textsTransform = texts.
+		attr("transform", function(d, i) {
 			var thisWidth = this.getBBox().width / 2;
 			if (i > fourthOfCats && i < c - fourthOfCats)
 			{
+				// i = 5 to i = 11
 				var difference = -thisWidth + maxTextWidth/2;
-				return d[0] + difference;
+				//document.write("Applying left shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + difference + "," + maxTextHeight + ")";	
 			}
 			else if (i != fourthOfCats && i != c - fourthOfCats)
 			{
+				// i != 3 and i != 11
 				var summed = thisWidth + maxTextWidth/2;
-				return d[0] + summed;
+				//document.write("Applying right shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + summed + "," + maxTextHeight + ")";		
 			}
 			else
 			{
-				return d[0] + (maxTextWidth*0.75 - thisWidth);
+				//document.write("Applying neutral shift to " + catInfo[i][0] + "<br>");
+				return "translate(" + (maxTextWidth*0.75 -thisWidth) + "," + maxTextHeight + ")";
 			}
-		})
-		.attr("y", function(d, i) {
-			return d[1] + maxTextHeight;
 		});
 	var circlesTransString = "translate(" + maxTextWidth*0.75 + "," + maxTextHeight + ")";
-	var circlesTransform = circles
-		.attr("cx", function(d, i)
-			{
-				return d.x_pos + (maxTextWidth*0.75);
-			})
-		.attr("cy", function(d, i)
-			{
-				return d.y_pos + maxTextHeight;
-			});
+	var circlesTransform = circles.
+		attr("transform", circlesTransString);
 }
 </script>

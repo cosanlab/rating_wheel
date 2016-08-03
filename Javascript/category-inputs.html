@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+</head>
+
+
+<body>
+</body>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+var cDef = 10;
+var catNames = [];
+var catColors = [];
+
+var c = cDef;
+
+drawInputs();
+
+function drawInputs()
+{
+	var divCont = d3.select("body").append("div");
+
+	for (var i = 0; i < c; i++)
+	{
+		var nextLabel = "";
+
+		if (catNames[i] == null)
+		{
+			nextLabel = "Category " + (i+1);
+		}
+		else
+		{
+			nextLabel = catNames[i];
+		}
+
+		divCont.append("input")
+			.attr("type", "text")
+			.attr("value", nextLabel)
+			.attr("id", "text-"+i);
+
+		if (i == c - 1)
+		{
+			divCont.append("xhtml:span")
+				.attr("class", "glyphicon glyphicon-plus-sign")
+				.attr("id", "icon-"+i);
+		}
+		else
+		{
+			divCont.append("xhtml:span")
+				.attr("class", "glyphicon glyphicon-minus-sign")
+				.attr("id", "icon-"+i)
+				.on("click", deleteThis);
+		}
+
+		divCont.append("p");
+	}
+
+	divCont.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-ok-sign")
+		.on("click", saveChanges);
+}
+
+function saveChanges()
+{
+	catNames = [];
+
+	document.write("Saving changes . . . <br>")
+	var boxes = d3.selectAll("body").selectAll("div").selectAll("input");
+	boxes.each(function(i)
+	{
+		alert("In the each loop!");
+		var nextValue = d3.select(this).attr("value");
+		catNames.push(nextValue);
+		document.write("Saving " + nextValue + " at index " + i + ".<br>");
+	});	
+
+	alert("Changes saved");
+}
+
+function deleteThis()
+{
+	var idFull = d3.select(this).attr("id");
+	var iDash = idFull.indexOf("-");
+
+	var idNum = parseInt(idFull.substring(iDash, idFull.length));
+
+	var boxToDel = d3.select("body").select("div").selectAll("input").filter(function()
+		{
+			return d3.select(this).attr("id") == "text-" + idNum;
+		});
+	
+	boxToDel.remove();
+	d3.select(this).remove();
+	c -= 1;
+	refresh();
+}
+
+function refresh()
+{
+	saveChanges();
+	deleteAll();
+	drawInputs();
+}
+
+
+function deleteAll()
+{
+	d3.select("body").select("div").remove();
+}
+</script>

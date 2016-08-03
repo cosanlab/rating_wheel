@@ -12,16 +12,7 @@
 }
 
 </style>
-<p id="display"></p> <!--TODO remove -->
-<!--<svg width="200" height="200" viewBox="0 0 200 200">
-  <g transform="translate(100,100)" stroke="#000" stroke-width="2">
-    <path d="M0 0 -70 70 A99 99 0 0 1 -70-70 Z" fill="#f00"/>
-    <path d="M0 0 -70-70 A99 99 0 0 1 70-70 Z" fill="#080"/>
-    <path d="M0 0 70-70 A99 99 0 0 1 70 70 Z" fill="#dd0"/>
-    <path d="M0 0 70 70 A99 99 0 0 1 -70 70 Z" fill="#04e"/>
-  </g>
-</svg> -->
-<!-- TODO remove -->
+<p id="display"></p>
 <svg></svg>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -206,7 +197,7 @@ for (var i = 0; i < t+1; i++)
 
 var allPoints = []; // array of arrays, where each entry is a point such that indexes 0=radius, 1=x pos, 2=y pos, 3=cat, 4=intens
 var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
-var justOuter = []; // array of arrays, where each entry is a point such that index 0=radius, 1=x pos, 2=y pos, 3=start theta, 4=end theta
+var justOuter = []; // array of arrays, where each entry is a point such that index 0=radius, 1=x pos, 2=y pos, 3=start theta, 4=end theta, 5=cat
 
 for (var n = 0; n < c; n++)
 {
@@ -229,21 +220,22 @@ for (var n = 0; n < c; n++)
 		var x = ((bigR - z) * Math.cos(trigVal) * manSclSpc[l]) + bigR;
 		var y = ((bigR - z) * Math.sin(trigVal) * manSclSpc[l]) + bigR;
 
-		if (l == 0) { justOuter.push([radius, x, y, (trigVal * (180 / Math.PI)), (trigValNext * (180 / Math.PI))]); }
+		if (l == 0) { justOuter.push([radius, x, y, (trigVal * (180 / Math.PI)), (trigValNext * (180 / Math.PI)), n]); }
 		allPoints.push([radius, x, y, n, l]);
 	}
 }
 
 // building JSON object construction string
 var jsonText = '{ "entries" : [';
-for (var iter = 0; iter < allPoints.length; iter++)
+for (var iter = 0; iter < justOuter.length; iter++)
 {
-	var toAdd = '{ "radius":' + allPoints[iter][0];
-	toAdd += ' , "x_pos":' + allPoints[iter][1];
-	toAdd += ' , "y_pos":' + allPoints[iter][2];
-	toAdd += ' , "cat":' + allPoints[iter][3];
-	toAdd += ' , "intens":' + allPoints[iter][4];
-	if (iter == allPoints.length - 1)
+	var toAdd = '{ "radius":' + justOuter[iter][0];
+	toAdd += ' , "x_pos":' + justOuter[iter][1];
+	toAdd += ' , "y_pos":' + justOuter[iter][2];
+	toAdd += ' , "start":' + justOuter[iter][3];
+	toAdd += ' , "end":' + justOuter[iter][4];
+	toAdd += ' , "cat":' + justOuter[iter][5];
+	if (iter == justOuter.length - 1)
 	{
 		toAdd += "} ";
 	}
@@ -256,12 +248,11 @@ for (var iter = 0; iter < allPoints.length; iter++)
 jsonText += ']}';
 
 var jsonObj = JSON.parse(jsonText);
-var jsonData = jsonObj.entries;
+var outerJSON = jsonObj.entries;
 
 var svgContainer = d3.select("body").append("svg");
 	//.attr("width", (bigR * 2) + r + 3*s).attr("height", (bigR * 2) + r + 3*s); //TODO reconsider "artificial" 3s (find real value)
 
-		
 var texts = svgContainer.append("g")
 	.selectAll("text")
 	.data(textPos)
@@ -321,41 +312,14 @@ var textsTransform = texts
 // transparent large circle that indicates extent of total graph/wheel
 var outlineCenterX = bigR + (maxTextWidth*0.75);
 var outlineCenterY = bigR + maxTextHeight;
-var outline = svgContainer.append("g")
-	.append("circle");
-var outlineAtt = outline
-	.attr("cx", outlineCenterX)
-	.attr("cy", outlineCenterY)
-	.attr("r", bigR)
-	.style("fill", "none")
-	.attr("id", "primary");
 
 // create gradients for each category
 var centralColor = "white"; //TODO customizable?
 var gradients = svgContainer.append("defs");
 
-var centralInOut = gradients.append("radialGradient")
-	.attr("id", "central-fade")
-	.attr("cx", "50%")
-	.attr("fx", "50%")
-	.attr("cy", "50%")
-	.attr("fy", "50%")
-	.attr("r", "45%")
-	.attr("spreadMethod", "pad");
-centralInOut.append("stop")
-	.attr("offset", "0%")
-	.attr("stop-color", centralColor)
-	.attr("stop-opacity", 1);
-centralInOut.append("stop")
-	.attr("offset", "100%")
-	.attr("stop-color", centralColor)
-	.attr("stop-opacity", 0);
-
 for (var i = 0; i < c; i++)
 {
 	var colorName = "coloration-" + i; //gradient going from main color to central color
-	var fadeOutName = "fadeOut-" + i; //gradient going from 100% intermediate color to 0% main color; used with clip-long-hi
-	var fadeInName = "fadeIn-" + i; //gradient going from 0% main color to 100% main color; used with clip-long-lo
 
 	//coloration
 	var coloration = gradients.append("radialGradient")
@@ -374,64 +338,13 @@ for (var i = 0; i < c; i++)
 		.attr("offset", "100%")
 		.attr("stop-color", catInfo[i][1])
 		.attr("stop-opacity", 1);
-
-	//fade out
-	var nextColor = "black";
-	if (i != c - 1)
-	{
-		nextColor = catInfo[i+1][1];
-	}
-	else if (i == c - 1)
-	{
-		nextColor = catInfo[0][1];
-	}
-	gradients.append("linearGradient")
-		.attr("id", fadeOutName)
-		.attr("x1", "0%")
-		.attr("x2", "0%")
-		.attr("y1", "100%")
-		.attr("y2", "100%")
-		.attr("spreadMethod", "pad")
-		.append("stop")
-			.attr("offset", "0%")
-			.attr("stop-color", "black")
-			.attr("stop-opacity", 1)
-		.append("stop")
-			.attr("offset", "100%")
-			.attr("stop-color", nextColor)
-			.attr("stop-opacity", 1);
-
-	//fade in
-	gradients.append("linearGradient")
-		.attr("id", fadeInName)
-		.attr("x1", "0%")
-		.attr("x2", "0%")
-		.attr("y1", "0%")
-		.attr("y2", "0%")
-		.attr("spreadMethod", "pad")
-		.append("stop")
-			.attr("offset", "0%")
-			.attr("stop-opacity", 0)
-		.append("stop")
-			.attr("offset", "100%")
-			.attr("stop-opacity", 1);
 }
-
-
-
-/*
-svg.append("rect")
-    .attr("width", width)
-    .attr("height", height)
-    .style("fill", "url(#gradient)");
-*/
-
 
 // draw arcs representing each category's sector, for on-hover use
 var rotRad = Math.PI / 2; // rotation (in rad) beyond default d3 arc function
 var arcClipsFull = svgContainer.append("defs")
 	.selectAll("clipPath")
-	.data(justOuter).enter()
+	.data(outerJSON).enter()
 	.append("clipPath")
 	.attr("id", function(d, i)
 		{
@@ -441,184 +354,101 @@ arcClipsFull.each(function(d, i)
 {
 	var thisClip = d3.select(this);
 	
-	var fullArc = d[4] - d[3];
-	var newStart = d[3] - (fullArc/2);
-	var newEnd = d[4] - (fullArc/2);
+	var fullArc = d.end - d.start;
+	var newStart = d.start - (fullArc/2);
+	var newEnd = d.end - (fullArc/2);
 	newStart *= (Math.PI / 180);
 	newEnd *= (Math.PI / 180);
 
 	var newArc = d3.arc()
 		.innerRadius(0)
-		.outerRadius(bigR - r) // VERY NEW
+		.outerRadius(bigR - r)
 	   	.startAngle(newStart + rotRad)
     	.endAngle(newEnd + rotRad);
 
     var thisArc = thisClip.append("path")
     	.attr("d", newArc());
 });
-var arcClipsShort = svgContainer.append("defs")
-	.selectAll("clipPath")
-	.data(justOuter).enter()
-	.append("clipPath")
-	.attr("id", function(d, i)
-		{
-			return "clip-short-" + i;
-		});
-arcClipsShort.each(function(d, i)
-{
-	var thisClip = d3.select(this);
-	
-	var fullArc = d[4] - d[3];
-	var newStart = d[3] - (fullArc / 4);
-	var newEnd = d[4] - (3*fullArc /4);
-	newStart *= (Math.PI / 180);
-	newEnd *= (Math.PI / 180);
-
-	var newArc = d3.arc()
-		.innerRadius(0)
-		.outerRadius(bigR - r) // VERY NEW
-	   	.startAngle(newStart + rotRad)
-    	.endAngle(newEnd + rotRad);
-
-    var thisArc = thisClip.append("path")
-    	.attr("d", newArc());
-});
-var arcClipsLongLo = svgContainer.append("defs")
-	.selectAll("clipPath")
-	.data(justOuter).enter()
-	.append("clipPath")
-	.attr("id", function(d, i)
-		{
-			return "clip-long-lo-" + i;
-		});
-arcClipsLongLo.each(function(d, i)
-{
-	var thisClip = d3.select(this);
-	
-	var fullArc = d[4] - d[3];
-	var newStart = d[3] - (fullArc/2); // start 1/4 a full sector's length backward 
-	var newEnd = d[3] - (fullArc/4); // end at corresponding short clip start
-
-	newStart *= (Math.PI / 180);
-	newEnd *= (Math.PI / 180);
-
-	var newArc = d3.arc()
-		.innerRadius(0)
-		.outerRadius(bigR - r) // VERY NEW
-	   	.startAngle(newStart + rotRad)
-    	.endAngle(newEnd + rotRad);
-
-    var thisArc = thisClip.append("path")
-    	.attr("d", newArc());
-});
-
-
-var arcClipsLongHi = svgContainer.append("defs")
-	.selectAll("clipPath")
-	.data(justOuter).enter()
-	.append("clipPath")
-	.attr("id", function(d, i)
-		{
-			return "clip-long-hi-" + i;
-		});
-arcClipsLongHi.each(function(d, i)
-{
-	var thisClip = d3.select(this);
-
-	var fullArc = d[4] - d[3];
-	var newStart = d[4] - (3*fullArc / 4); // start at corresponding short clip end
-	var newEnd = d[4] - (fullArc/2); // end 1/4 a full sector's length forward
-
-	newStart *= (Math.PI / 180);
-	newEnd *= (Math.PI / 180);
-
-	var newArc = d3.arc()
-		.innerRadius(0)
-		.outerRadius(bigR - r) // VERY NEW
-	   	.startAngle(newStart + rotRad)
-    	.endAngle(newEnd + rotRad);
-
-    var thisArc = thisClip.append("path")
-    	.attr("d", newArc());
-});
-
 var transString = "translate(" + (bigR + (maxTextWidth*0.75)) + "," + (bigR + maxTextHeight) + ")";
-arcClipsShort.attr("transform", transString);
-arcClipsLongLo.attr("transform", transString);
-arcClipsLongHi.attr("transform", transString);
+arcClipsFull.attr("transform", transString);
 
-var arcColors = svgContainer.append("g")
+var ratingArcs = svgContainer.append("g");
+
+var arcColors = ratingArcs
 	.selectAll("circle")
-	.data(justOuter).enter()
+	.data(outerJSON).enter()
 	.append("circle")
 	.attr("cx", outlineCenterX)
 	.attr("cy", outlineCenterY)
 	.attr("r", bigR)
 	.style("clip-path", function(d, i)
 		{
-			return "url(#clip-short-" + i + ")";
+			return "url(#clip-full-" + i + ")";
 		})
 	.style("fill", function(d, i)
 		{
 			return "url(#coloration-" + i + ")";
 		})
-	.style("fill-opacity", 1); //TODO change back to 0
-var arcFadeHi = svgContainer.append("g")
-	.selectAll("circle")
-	.data(justOuter).enter()
-	.append("circle")
-	.attr("cx", outlineCenterX)
-	.attr("cy", outlineCenterY)
-	.attr("r", bigR)
-	.style("clip-path", function(d, i)
-		{
-			return "url(#clip-long-hi-" + i + ")";
-		})
-	/*
-	.style("fill", function(d, i)
-		{
-			return catInfo[i][1];
-		})
-	*/
-	.style("fill", function(d, i)
-		{
-			return "black";
-			//return "url(#fadeOut-" + i + ")";
-		})
-	.style("fill-opacity", 1); //TODO change back to 0
-var arcFadeLo = svgContainer.append("g")
-	.selectAll("circle")
-	.data(justOuter).enter()
-	.append("circle")
-	.attr("cx", outlineCenterX)
-	.attr("cy", outlineCenterY)
-	.attr("r", bigR)
-	.style("clip-path", function(d, i)
-		{
-			return "url(#clip-long-lo-" + i + ")";
-		})
-	.style("fill", function(d, i)
-		{
-			return "steelblue";
-			//return "url(#fadeOut-" + i + ")";
-		})
-	.style("fill-opacity", 1); //TODO change back to 0
+	.style("fill-opacity", 1);
 
-/*
-var drawCircles = svgContainer.append("g")
-	.selectAll("circle")
-	.data(justOuter).enter()
-	.append("circle")
-	.attr("cx", function(d) { return d[1] + (maxTextWidth * 0.75); })
-	.attr("cy", function(d) { return d[2] + (maxTextHeight); })
-	.attr("r", function(d) { return d[0]; })
-	.style("fill", "none")
-	.style("stroke", "lime")
-	.style("stroke-width", 5);
-*/
+var arcTrack = ratingArcs
+	.selectAll("path")
+	.data(outerJSON).enter()
+	.append("path")
+	.attr("d", function(d, i)
+		{
+		var fullArc = d.end - d.start;
+		var newStart = d.start - (fullArc/2);
+		var newEnd = d.end - (fullArc/2);
+		newStart *= (Math.PI / 180);
+		newEnd *= (Math.PI / 180);
 
+		var newArc = d3.arc()
+			.innerRadius(0)
+			.outerRadius(bigR + r)
+		   	.startAngle(newStart + rotRad)
+	    	.endAngle(newEnd + rotRad);
+
+	    return newArc();
+		})
+	.style("fill", "black")
+	.style("fill-opacity", 0)
+	.attr("transform", transString)
+	.on("mousedown", clickedTrack)
+	.on("mousemove", adjustIntensity)
+	.on("mouseup", resetActiveTrack);
 
 // mouse event handlers
+
+
+var activeCatTrack = -1;
+
+function adjustIntensity(d)
+{
+	var coords = d3.mouse(this);
+	var newR = distance(coords[0], coords[1], 0, 0);
+		if (newR > (bigR - r)) { newR == bigR - r; }
+
+	if (activeCatTrack != -1)
+	{
+		var circleCat = d3.selectAll("circle").filter(function(d)
+		{
+			return d.cat == activeCatTrack;
+		});
+		circleCat.attr("r", newR);
+	}
+}
+
+function clickedTrack(d, i)
+{
+ 	activeCatTrack = d.cat;
+}
+
+function resetActiveTrack()
+{
+	activeCatTrack =  -1;
+}
+
 function toHSL(rgbColor, satProp, briProp)
 {
 	// takes in a D3 rgb color object, with fields r, g, b
