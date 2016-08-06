@@ -6,6 +6,7 @@
 
 
 <body>
+<p id="display"></p>
 </body>
 
 
@@ -20,97 +21,161 @@ var catColors = [];
 
 var c = cDef;
 
+var divCont = d3.select("body").append("div");
 drawInputs();
 
 function drawInputs()
 {
-	var divCont = d3.select("body").append("div");
-
 	for (var i = 0; i < c; i++)
 	{
-		var nextLabel = "";
-
-		if (catNames[i] == null)
-		{
-			nextLabel = "Category " + (i+1);
-		}
-		else
-		{
-			nextLabel = catNames[i];
-		}
-
-		divCont.append("input")
-			.attr("type", "text")
-			.attr("value", nextLabel)
-			.attr("id", "text-"+i);
-
-		if (i == c - 1)
-		{
-			divCont.append("xhtml:span")
-				.attr("class", "glyphicon glyphicon-plus-sign")
-				.attr("id", "icon-"+i);
-		}
-		else
-		{
-			divCont.append("xhtml:span")
-				.attr("class", "glyphicon glyphicon-minus-sign")
-				.attr("id", "icon-"+i)
-				.on("click", deleteThis);
-		}
-
-		divCont.append("p");
+		addRow(i);
 	}
 
 	divCont.append("xhtml:span")
 		.attr("class", "glyphicon glyphicon-ok-sign")
-		.on("click", saveChanges);
+		.on("click", saveAll);
 }
 
-function saveChanges()
+function addRow(inputNum)
 {
-	catNames = [];
+	var newDiv = divCont.append("div")
+		.attr("id", "entry-"+inputNum);
 
-	document.write("Saving changes . . . <br>")
-	var boxes = d3.selectAll("body").selectAll("div").selectAll("input");
-	boxes.each(function(i)
+	var nextLabel = "";
+	if (catNames[inputNum] == null)
 	{
-		alert("In the each loop!");
-		var nextValue = d3.select(this).attr("value");
-		catNames.push(nextValue);
-		document.write("Saving " + nextValue + " at index " + i + ".<br>");
-	});	
+		nextLabel = "Category " + (inputNum + 1);
+	}
+	else
+	{
+		nextLabel = catNames[inputNum];
+	}
 
-	alert("Changes saved");
+	newDiv.append("input")
+		.attr("type", "text")
+		.attr("value", nextLabel)
+		.classed("name", true);
+
+	if (inputNum == c - 1)
+	{
+		newDiv.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-plus-sign")
+		.attr("id", "icon-"+inputNum)
+		.on("click", addNew);
+	}
+	else
+	{
+		newDiv.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-minus-sign")
+		.on("click", deleteThis);
+	}
+
+	newDiv.append("p");
+}
+
+function updateIDNumbers(delLoc)
+{
+	//takes in numeric index in catNames where an entry was deleted
+
+	divCont.selectAll("div").each(function()
+		{
+			var fullID = d3.select(this).attr("id");
+
+			var numID = -1; 
+			// if div has no id (thus does not contain an entry) will never go to if
+			
+			if (fullID != null)
+			{
+				numID = parseInt(fullID.substring(fullID.indexOf("-") + 1, fullID.length));
+			}
+			
+			if (numID > delLoc)
+			{
+				var newID = fullID.substring(0, fullID.indexOf("-")) + "-" + (numID - 1);
+				d3.select(this).attr("id", newID);
+			}
+		});
+}
+
+
+function addNew()
+{
+
+	var existingPlus = divCont.selectAll("span")
+		.filter(function()
+			{
+				return d3.select(this).attr("class") == "glyphicon glyphicon-plus-sign";
+			});
+	existingPlus
+		.attr("class", "glyphicon glyphicon-minus-sign")
+		.on("click", deleteThis);
+
+	c++;
+	addRow(c-1);
+
+	divCont.selectAll("span")
+		.filter(function()
+			{
+				return d3.select(this).attr("class") == "glyphicon glyphicon-ok-sign";
+			})
+		.remove();
+
+	divCont.append("xhtml:span")
+		.attr("class", "glyphicon glyphicon-ok-sign")
+		.on("click", saveAll);
 }
 
 function deleteThis()
 {
-	var idFull = d3.select(this).attr("id");
-	var iDash = idFull.indexOf("-");
 
-	var idNum = parseInt(idFull.substring(iDash, idFull.length));
+	saveAll();
 
-	var boxToDel = d3.select("body").select("div").selectAll("input").filter(function()
+	var fullID = d3.select(this.parentNode).attr("id");
+	var numID = parseInt(fullID.substring(fullID.indexOf("-") + 1, fullID.length));
+
+	var idToFind = "entry-" + numID;
+
+	var divToDel = divCont.selectAll("div").filter(function()
 		{
-			return d3.select(this).attr("id") == "text-" + idNum;
+			return d3.select(this).attr("id") == idToFind;
 		});
-	
-	boxToDel.remove();
-	d3.select(this).remove();
+
+	divToDel.remove();
+	catNames.splice(numID, 1);
 	c -= 1;
-	refresh();
+
+	updateIDNumbers(numID);
 }
 
-function refresh()
+function printSaves() //TODO debugging functionality only
 {
-	saveChanges();
-	deleteAll();
-	drawInputs();
+	var textToDisplay = "Values saved as: <br>";
+
+	for (var i = 0; i < catNames.length; i++)
+	{
+		textToDisplay += "Entry " + i + ", value: " + catNames[i] + "<br>";
+	}
+
+	document.getElementById("display").innerHTML = textToDisplay;
+
 }
 
-
-function deleteAll()
+function saveAll()
 {
-	d3.select("body").select("div").remove();
+	var allEntryDivs = divCont.selectAll("div").filter(function()
+		{
+			return d3.select(this).attr("id") != null;
+		});
+
+	var allTextBoxes = allEntryDivs.selectAll("input").filter(function()
+		{
+			return d3.select(this).classed("name");
+		});
+
+	catNames = [];
+	allTextBoxes.each(function(i)
+		{
+			catNames.push(d3.select(this).node().value);
+		});
 }
 </script>
