@@ -15,7 +15,8 @@
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
 
-var cDef = 10;
+var cDef = 5;
+var cMax = 8;
 var catNames = [];
 var catColors = [];
 
@@ -58,10 +59,12 @@ function addRow(inputNum)
 
 	if (inputNum == c - 1)
 	{
-		newDiv.append("xhtml:span")
-		.attr("class", "glyphicon glyphicon-plus-sign")
-		.attr("id", "icon-"+inputNum)
-		.on("click", addNew);
+		if (c != cMax)
+		{
+			newDiv.append("xhtml:span")
+			.attr("class", "glyphicon glyphicon-plus-sign")
+			.on("click", addNew);
+		}
 	}
 	else
 	{
@@ -80,7 +83,6 @@ function updateIDNumbers(delLoc)
 	divCont.selectAll("div").each(function()
 		{
 			var fullID = d3.select(this).attr("id");
-
 			var numID = -1; 
 			// if div has no id (thus does not contain an entry) will never go to if
 			
@@ -95,6 +97,36 @@ function updateIDNumbers(delLoc)
 				d3.select(this).attr("id", newID);
 			}
 		});
+
+	if (c == cMax - 1)
+	{
+		//last entry was the maximum, before this update)
+		var lastDiv = divCont.selectAll("div").filter(function()
+			{
+				var fullID = d3.select(this).attr("id");
+				var numID = -1; 
+				// if div has no id (thus does not contain an entry) will never go to if		
+				if (fullID != null)
+				{
+					numID = parseInt(fullID.substring(fullID.indexOf("-") + 1, fullID.length));
+				}
+
+				return numID == c - 1;
+			});
+
+		var lastDivSpans = lastDiv.selectAll("span").size();
+		if (lastDivSpans == 0)
+		{
+			lastDiv.selectAll("p").remove();
+
+			lastDiv.append("xhtml:span")
+			.attr("class", "glyphicon glyphicon-plus-sign")
+			.on("click", addNew);
+
+			lastDiv.append("p");
+		}
+
+	}
 }
 
 
