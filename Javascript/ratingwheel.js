@@ -1,7 +1,7 @@
 var rating_wheel = {};
 
 //TODO delete
-alert("V34");
+alert("V38");
 
 rating_wheel.continuous =
 {
@@ -31,6 +31,9 @@ rating_wheel.continuous =
 			
 			//default values
 			this.centralColor = "white";
+			this.effect = [];
+			this.effect["select"] = "drag";
+			this.effect["center"] = 0.20;
 			
 			var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
 			var arcPoints = []; // array of arrays, where each entry is a point such that index 0=start theta, 1=end theta, 2=cat
@@ -54,8 +57,6 @@ rating_wheel.continuous =
 			var arcConvert = rating_wheel.etc.toJSON(arcPoints, "arcs");
 			this.allPoints = {arcs:arcConvert, text:textConvert};
 		}
-		//TODO delete
-		alert("completed creation of object");
 		return new wheelCon(bigR, c, s, fontInfo, catInfo);
 	}
 }
@@ -477,6 +478,8 @@ rating_wheel.render =
 			.style("fill-opacity", 0)
 			.attr("transform", transString);
 			//TODO: mouse events go on these ones
+
+		rating_wheel.render.setSelect(arcTrack, wheelObj);
 	},
 	
 	discrete: function(wheelObj)
@@ -561,6 +564,51 @@ rating_wheel.render =
 				{
 					return d.y_pos + maxTextHeight;
 				});
+	},
+
+	setSelect: function(arcTrackObj, wheelObj)
+	{
+		if (wheelObj.effect.select = "drag")
+		{
+			arcTrackObj
+				.on("mousedown", clickedTrack)
+				.on("mousemove", adjustIntensity)
+				.on("mouseup", resetActiveTrack);
+
+			var activeCatTrack = -1;
+
+			function adjustIntensity(d)
+			{
+				var centerPercent = wheelObj.effect.center;
+				var coords = d3.mouse(this);
+				var newR = rating_wheel.math.distance(coords[0], coords[1], 0, 0);
+					if (newR > (wheelObj.bigR - wheelObj.s)) 
+						{ newR = wheelObj.bigR - wheelObj.s; }
+					else if (newR < wheelObj.bigR * centerPercent)
+						{
+							newR = wheelObj.bigR * centerPercent; }
+
+
+				if (activeCatTrack != -1)
+				{
+					var circleCat = d3.selectAll("circle").filter(function(d)
+					{
+						return d.cat == activeCatTrack;
+					});
+					circleCat.attr("r", newR);
+				}
+			}
+
+			function clickedTrack(d, i)
+			{
+			 	activeCatTrack = d.cat;
+			}
+
+			function resetActiveTrack()
+			{
+				activeCatTrack =  -1;
+			}
+		}
 	}
 }
 
