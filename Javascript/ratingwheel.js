@@ -1,14 +1,70 @@
-//ENORMOUS ISSUE: how do I reference d3 inside these files?
-
 var rating_wheel = {};
 
-rating_wheel.wheel =
-{
-	create: function(bigR, c, t, p, g, s, q, fontInfo, catInfo)
-	{
-		// static vars
+//TODO delete
+alert("V34");
 
-		var createCon = function(bigR, c, t, p, g, s, q, fontInfo, catInfo)
+rating_wheel.continuous =
+{
+	wheel: function(bigR, c, s, fontInfo, catInfo)
+	{
+		var wheelCon = function(bigR, c, s, fontInfo, catInfo)
+		{
+			//NOTES
+			/*
+				bigR = radius of entire plot
+				c = number of concept categories ("families")
+				s = minimum space between circle and text (pixels)
+				fontFam = for text labels, font family name, from CSS standards
+				fontSize = for text labels, font size
+			*/
+
+			//indicate originally created as discrete wheel
+			this.orient = "continuous";
+			
+			//user-provided parameters
+			this.bigR = bigR;
+			this.c = c;
+			this.s = s;
+			this.fontFam = fontInfo.family;
+			this.fontSize = fontInfo.size;
+			this.catInfo = catInfo;
+			
+			//default values
+			this.centralColor = "white";
+			
+			var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
+			var arcPoints = []; // array of arrays, where each entry is a point such that index 0=start theta, 1=end theta, 2=cat
+
+			for (var n = 0; n < c; n++)
+			{
+				var trigVal = ((2 * Math.PI) / c) * n;
+				var trigValNext = ((2 * Math.PI) / c) * (n+1);
+
+				var textX = ((bigR + s) * Math.cos(trigVal)) + bigR;
+				var textY = ((bigR + s) * Math.sin(trigVal)) + bigR;
+
+				if (textX < 0) {textX = 0; }
+				if (textY < 0) {textY = 0; }
+				textPos.push([textX, textY]);
+
+				arcPoints.push([trigVal * (180 / Math.PI), (trigValNext * (180 / Math.PI)), n]);	
+			}
+			
+			var textConvert = rating_wheel.etc.toJSON(textPos, "text");
+			var arcConvert = rating_wheel.etc.toJSON(arcPoints, "arcs");
+			this.allPoints = {arcs:arcConvert, text:textConvert};
+		}
+		//TODO delete
+		alert("completed creation of object");
+		return new wheelCon(bigR, c, s, fontInfo, catInfo);
+	}
+}
+
+rating_wheel.discrete =
+{
+	wheel: function(bigR, c, t, p, g, s, q, fontInfo, catInfo)
+	{
+		var wheelCon = function(bigR, c, t, p, g, s, q, fontInfo, catInfo)
 		{
 			//NOTES
 			/*
@@ -16,15 +72,16 @@ rating_wheel.wheel =
 				c = number of concept categories ("families")
 				t = number of intensities/levels
 				p = ratio of (circle area / next biggest circle area)
-				g = gap between category sectors, 
-					as [(gap size) / (circle size * c)]
+				g = gap between category sectors, as [(gap size) / (circle size * c)]
 				s = minimum space between intensity levels (pixels)
-				q = center "blank" circle size, 
-					as percent change from outermost radius size
+				q = center "blank" circle size, as percent change from outermost radius size
 				fontFam = for text labels, font family name, from CSS standards
 				fontSize = for text labels, font size
 			*/
 
+			//indicate originally created as discrete wheel
+			this.orient = "discrete";
+			
 			//user-provided parameters
 			this.bigR = bigR;
 			this.c = c;
@@ -49,22 +106,6 @@ rating_wheel.wheel =
 			this.precisionS = 0.05;
 			this.spacePadding = 0.1;
 			this.expFactor = 1.2;
-			this.setPreciR = function(value)
-			{
-				this.precisionR = value;
-			}
-			this.setPreciS = function(value)
-			{
-				this.precisionS = value;
-			}
-			this.setSpacePadding = function(value)
-			{
-				this.spacePadding = value;
-			}
-			this.setExpFactor = function(value)
-			{
-				this.expFactor = value;
-			}
 
 			//values calculated from parameters
 			var sumVal = 0;
@@ -75,9 +116,6 @@ rating_wheel.wheel =
 			this.r = ((bigR - (s*t) - s) / (sumVal + (1+q)))
 			
 			this.trigVal = (2 * Math.PI) / this.c;
-
-			//TODO delete
-			alert("V30: parameters set");
 
 			//overlap and spacing scaling functions
 			this.overspaceScaleCalc = function()
@@ -239,58 +277,212 @@ rating_wheel.wheel =
 			}
 			this.allPoints = this.points();
 		};
-		return new createCon(bigR, c, t, p, g, s, q, fontInfo, catInfo);
-	},
-
-	font: function(size, family)
-	{
-		//renders font information as an array usable by "create"
-
-		//TODO: check validity of family input
-		var familyCorr = family; //TODO: remove after fix
-
-		return {size:size, family:familyCorr};
-	},
-
-	categories: function(names, colors)
-	{
-		//renders category information as an array usable by "create"
-		if (names.length == null || colors.length == null)
-		{
-			// if these are not arrays
-			return null;
-		}
-		else if (names.length != colors.length)
-		{
-			// if these are not of equal size
-			return null;
-		}
-		else
-		{
-			var combined = [];
-			for (var i = 0; i < names.length; i++)
-			{
-				//TODO: check validity of color input
-				var colorCorr = colors[i]; //TODO: remove after fix
-
-				combined.push({name: names[i], color: colorCorr});
-			}
-			return combined;
-		}
+		return new wheelCon(bigR, c, t, p, g, s, q, fontInfo, catInfo);
 	}
 }
 
 rating_wheel.render =
 {
 
-	go: function(wheelObj)
+	finddiv: function()
 	{
-
+		//NOTES: can change this value to change the div that is designated for the rating_wheel
+		var targetID = "rating_wheel";
+		
+		var targetDiv = d3.select("body").selectAll("div").filter(function()
+		{
+			return d3.select(this).attr("id") == targetID;
+		});
+		return targetDiv;
 	},
 
-	draw: function(wheelObj)
+	go: function(wheelObj)
 	{
-		var svgContainer = d3.select("body").append("svg");
+		var orient = wheelObj.orient;
+		
+		if (orient == "discrete")
+		{
+			rating_wheel.render.discrete(wheelObj);
+		}
+		else if (orient == "continuous")
+		{
+			rating_wheel.render.continuous(wheelObj);
+		}
+		else
+		{
+			//TODO error?
+		}
+	},
+
+	continuous: function(wheelObj)
+	{
+		var divToPlace = rating_wheel.render.finddiv();
+		var svgContainer = divToPlace.append("svg");
+		var arcData = wheelObj.allPoints.arcs;
+		var textData = wheelObj.allPoints.text;
+		var catInfo = wheelObj.catInfo;
+				
+		var texts = svgContainer.append("g")
+			.selectAll("text")
+			.data(textData)
+			.enter().append("text");
+		var textsAtt = texts
+			.text(function (d, i) {
+				return catInfo[i].name; })
+			.attr("x", function (d, i) { return d.x;})
+			.attr("y", function (d) { return d.y; })
+			.style("fill", "black")
+			.style("font-family", wheelObj.fontFam)
+			.style("font-size", wheelObj.fontSize);
+
+		var maxTextHeight = 0;
+		var maxTextWidth = 0;		
+		texts.each(function() 
+		{
+		    if (this.getBBox().height > maxTextHeight)
+		    {
+		    	maxTextHeight = this.getBBox().height;
+		    }
+		    if (this.getBBox().width > maxTextWidth)
+		    {
+		    	maxTextWidth = this.getBBox().width;
+		    }
+		});
+		
+		var svgContainerTransform = svgContainer
+			.attr("width", (wheelObj.bigR * 2) + 3*maxTextWidth)
+			.attr("height", (wheelObj.bigR * 2) + 3*maxTextHeight);
+
+		var fourthOfCats = Math.round((wheelObj.c+1)/4);
+		var textsTransform = texts
+			.attr("x", function(d, i) {
+				var thisWidth = this.getBBox().width / 2;
+				if (i > fourthOfCats && i < wheelObj.c - fourthOfCats)
+				{
+					var difference = -thisWidth + maxTextWidth/2;
+					return d.x + difference;
+				}
+				else if (i != fourthOfCats && i != wheelObj.c - fourthOfCats)
+				{
+					var summed = thisWidth + maxTextWidth/2;
+					return d.x + summed;
+				}
+				else
+				{
+					return d.x + (maxTextWidth*0.75 - thisWidth);
+				}
+			})
+			.attr("y", function(d, i) {
+				return d.y + maxTextHeight;
+			});
+
+		var overallCenterX = wheelObj.bigR + (maxTextWidth*0.75);
+		var overallCenterY = wheelObj.bigR + maxTextHeight;
+		
+		// create gradients for each category
+		var gradients = svgContainer.append("defs");
+		for (var i = 0; i < wheelObj.c; i++)
+		{
+			var colorName = "coloration-" + i; //gradient going from main color to central color
+
+			//coloration
+			var coloration = gradients.append("radialGradient")
+				.attr("id", colorName)
+				.attr("cx", "50%")
+				.attr("fx", "50%")
+				.attr("cy", "50%")
+				.attr("fy", "50%")
+				.attr("r", "45%")
+				.attr("spreadMethod", "pad");
+			coloration.append("stop")
+				.attr("offset", "0%")
+				.attr("stop-color", wheelObj.centralColor)
+				.attr("stop-opacity", 1);
+			coloration.append("stop")
+				.attr("offset", "100%")
+				.attr("stop-color", catInfo[i].color)
+				.attr("stop-opacity", 1);
+		}		
+		
+		// draw arcs representing each category's sector, for on-hover use
+		var rotRad = Math.PI / 2; // rotation (in rad) beyond default d3 arc function
+		var arcClipsFull = svgContainer.append("defs")
+			.selectAll("clipPath")
+			.data(arcData).enter()
+			.append("clipPath")
+			.attr("id", function(d, i)
+				{
+					return "clip-full-" + i;
+				});
+		arcClipsFull.each(function(d, i)
+		{
+			var thisClip = d3.select(this);
+			
+			var fullArc = d.end - d.start;
+			var newStart = d.start - (fullArc/2);
+			var newEnd = d.end - (fullArc/2);
+			newStart *= (Math.PI / 180);
+			newEnd *= (Math.PI / 180);
+
+			var newArc = d3.arc()
+				.innerRadius(0)
+				.outerRadius(wheelObj.bigR - wheelObj.s)
+				.startAngle(newStart + rotRad)
+				.endAngle(newEnd + rotRad);
+
+			var thisArc = thisClip.append("path")
+				.attr("d", newArc());
+		});
+		var transString = "translate(" + (wheelObj.bigR + (maxTextWidth*0.75)) + "," + (wheelObj.bigR + maxTextHeight) + ")";
+		arcClipsFull.attr("transform", transString);
+		
+		var ratingArcs = svgContainer.append("g");
+		var arcColors = ratingArcs
+			.selectAll("circle")
+			.data(arcData).enter()
+			.append("circle")
+			.attr("cx", overallCenterX)
+			.attr("cy", overallCenterY)
+			.attr("r", wheelObj.bigR)
+			.style("clip-path", function(d, i)
+				{
+					return "url(#clip-full-" + i + ")";
+				})
+			.style("fill", function(d, i)
+				{
+					return "url(#coloration-" + i + ")";
+				})
+			.style("fill-opacity", 1);
+		var arcTrack = ratingArcs
+			.selectAll("path")
+			.data(arcData).enter()
+			.append("path")
+			.attr("d", function(d, i)
+				{
+					var fullArc = d.end - d.start;
+					var newStart = d.start - (fullArc/2);
+					var newEnd = d.end - (fullArc/2);
+					newStart *= (Math.PI / 180);
+					newEnd *= (Math.PI / 180);
+
+					var newArc = d3.arc()
+						.innerRadius(0)
+						.outerRadius(wheelObj.bigR + wheelObj.s)
+						.startAngle(newStart + rotRad)
+						.endAngle(newEnd + rotRad);
+
+					return newArc();
+				})
+			.style("fill", "black")
+			.style("fill-opacity", 0)
+			.attr("transform", transString);
+			//TODO: mouse events go on these ones
+	},
+	
+	discrete: function(wheelObj)
+	{
+		var divToPlace = rating_wheel.render.finddiv();
+		var svgContainer = divToPlace.append("svg");
 		var circleData = wheelObj.allPoints.circles;
 		var textData = wheelObj.allPoints.text;
 		var catInfo = wheelObj.catInfo;
@@ -398,11 +590,10 @@ rating_wheel.etc =
 {
 	toJSON: function(thisArray, identifier)
 	{
-
+		var jsonText = '{ "entries" : [';
 		//identifier accepted as "circles" or "text"
 		if (identifier == "circles")
 		{
-			var jsonText = '{ "entries" : [';
 			for (var iter = 0; iter < thisArray.length; iter++)
 			{
 				var toAdd = '{ "radius":' + thisArray[iter][0];
@@ -420,14 +611,9 @@ rating_wheel.etc =
 				}
 				jsonText += toAdd;
 			}
-			jsonText += ']}';
-
-			var jsonObj = JSON.parse(jsonText);
-			return jsonObj.entries;
 		}
 		else if (identifier == "text")
 		{
-			var jsonText = '{ "entries" : [';
 			for (var iter = 0; iter < thisArray.length; iter++)
 			{
 				var toAdd = '{ "x":' + thisArray[iter][0];
@@ -441,15 +627,66 @@ rating_wheel.etc =
 					toAdd += '}, ';
 				}
 				jsonText += toAdd;
+			}			
+		}
+		else if (identifier == "arcs")
+		{
+			for (var iter = 0; iter < thisArray.length; iter++)
+			{
+				var toAdd = '{ "start":' + thisArray[iter][0];
+				toAdd += ' , "end":' + thisArray[iter][1];
+				toAdd += ' , "cat":' + thisArray[iter][2];
+				if (iter == thisArray.length - 1)
+				{
+					toAdd += "} ";
+				}
+				else
+				{
+					toAdd += '}, ';
+				}
+				jsonText += toAdd;
 			}
-			jsonText += ']}';
+		}
+		
+		jsonText += ']}';
+		var jsonObj = JSON.parse(jsonText);
+		return jsonObj.entries;
+	},
+	
+	font: function(size, family)
+	{
+		//renders font information as an array usable by "create"
 
-			var jsonObj = JSON.parse(jsonText);
-			return jsonObj.entries;			
+		//TODO: check validity of family input
+		var familyCorr = family; //TODO: remove after fix
+
+		return {size:size, family:familyCorr};
+	},
+
+	categories: function(names, colors)
+	{
+		//renders category information as an array usable by "create"
+		if (names.length == null || colors.length == null)
+		{
+			// if these are not arrays
+			return null;
+		}
+		else if (names.length != colors.length)
+		{
+			// if these are not of equal size
+			return null;
 		}
 		else
 		{
-			return null;
+			var combined = [];
+			for (var i = 0; i < names.length; i++)
+			{
+				//TODO: check validity of color input
+				var colorCorr = colors[i]; //TODO: remove after fix
+
+				combined.push({name: names[i], color: colorCorr});
+			}
+			return combined;
 		}
 	}
 }

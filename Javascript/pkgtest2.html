@@ -59,7 +59,7 @@ var names = [
 var fontInfo = rating_wheel.etc.font(19, "impact");
 var catInfo = rating_wheel.etc.categories(names, colors);
 
-var firstWheel = rating_wheel.discrete.wheel(360, 16, 3, 0.75, 0.01, 25, 0.25, fontInfo, catInfo);
+var firstWheel = rating_wheel.continuous.wheel(360, 16, 25, fontInfo, catInfo);
  
 rating_wheel.render.go(firstWheel);
 
