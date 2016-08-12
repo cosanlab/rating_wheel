@@ -13,12 +13,12 @@ Continuous
 	Render: calls Render -> Continuous
 	Set: setting functions
 		Shape: doughnut vs. pie
-		Select: click/hold to select, release to commit; click to commit
-		Preview: true (black circle indicates where mouse is hovering on this category relative to other categories) vs. false
+		*Select: click/hold to select, release to commit; click to commit
+		*Preview: true (black circle indicates where mouse is hovering on this category relative to other categories) vs. false
 		Guides: true (dotted black lines extend out from sectors) vs. false
 		Center: true (white circle in center at 60% of minimum size) vs. false
 		Minsize: determine the percentage of the overall circle that defines soft 0; no category can be dragged smaller than this
-		Gradient: true (sectors are 
+		Gradient: true (sectors are gradients, not solids) vs. false
 		Glow: determine the color that the gradient is blended with towards the center
 		Numoptions: how many categories can be rated, or “max” (will find max number of categories)
 

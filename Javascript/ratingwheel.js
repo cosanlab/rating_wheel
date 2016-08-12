@@ -1,7 +1,7 @@
 var rating_wheel = {};
 
 //TODO delete
-alert("V38");
+alert("V53");
 
 rating_wheel.continuous =
 {
@@ -32,8 +32,9 @@ rating_wheel.continuous =
 			//default values
 			this.centralColor = "white";
 			this.effect = [];
-			this.effect["select"] = "drag";
+			this.effect["select"] = "click";
 			this.effect["center"] = 0.20;
+			this.effect["preview"] = true; 
 			
 			var textPos = []; // array of arrays that stores coordinates for each category name textbook as [x, y]
 			var arcPoints = []; // array of arrays, where each entry is a point such that index 0=start theta, 1=end theta, 2=cat
@@ -454,6 +455,15 @@ rating_wheel.render =
 					return "url(#coloration-" + i + ")";
 				})
 			.style("fill-opacity", 1);
+		var preview = ratingArcs
+			.append("circle")
+			.attr("cx", overallCenterX)
+			.attr("cy", overallCenterY)
+			.attr("r", wheelObj.bigR*0.5)
+			.attr("id", "preview")
+			.style("fill", "none")
+			.style("stroke", "black")
+			.style("stroke-width", 3);
 		var arcTrack = ratingArcs
 			.selectAll("path")
 			.data(arcData).enter()
@@ -479,7 +489,7 @@ rating_wheel.render =
 			.attr("transform", transString);
 			//TODO: mouse events go on these ones
 
-		rating_wheel.render.setSelect(arcTrack, wheelObj);
+		rating_wheel.render.selectCont(arcTrack, wheelObj);
 	},
 	
 	discrete: function(wheelObj)
@@ -565,50 +575,111 @@ rating_wheel.render =
 					return d.y_pos + maxTextHeight;
 				});
 	},
-
-	setSelect: function(arcTrackObj, wheelObj)
+	
+	selectCont: function(arcTrackObj, wheelObj)
 	{
-		if (wheelObj.effect.select = "drag")
+		var selectVal = wheelObj.effect.select;
+		var previewVal = wheelObj.effect.preview;
+
+		var activeCatTrack = -1;
+
+		var circlePrev = d3.selectAll("circle").filter(function(d)
 		{
-			arcTrackObj
-				.on("mousedown", clickedTrack)
-				.on("mousemove", adjustIntensity)
-				.on("mouseup", resetActiveTrack);
+			return d3.select(this).attr("id") == "preview";
+		});
+		if (!previewVal)
+		{
+			circlePrev.remove();
+		}
 
-			var activeCatTrack = -1;
-
-			function adjustIntensity(d)
+		var move = (function()
+		{
+			return function(d)
 			{
-				var centerPercent = wheelObj.effect.center;
 				var coords = d3.mouse(this);
 				var newR = rating_wheel.math.distance(coords[0], coords[1], 0, 0);
 					if (newR > (wheelObj.bigR - wheelObj.s)) 
 						{ newR = wheelObj.bigR - wheelObj.s; }
-					else if (newR < wheelObj.bigR * centerPercent)
-						{
-							newR = wheelObj.bigR * centerPercent; }
+					else if (newR < wheelObj.bigR * wheelObj.effect.center)
+						{ newR = wheelObj.bigR * wheelObj.effect.center; }
 
-
-				if (activeCatTrack != -1)
+				if (selectVal == "drag")
 				{
-					var circleCat = d3.selectAll("circle").filter(function(d)
+					if (activeCatTrack != -1)
 					{
-						return d.cat == activeCatTrack;
-					});
+						var circleCat = d3.selectAll("circle").filter(function(d)
+						{
+							if (d3.select(this).attr("id") != "preview")
+							{
+								return d.cat == activeCatTrack;
+							}
+						});
+						circleCat.attr("r", newR);
+					}
+				}
+
+				if (previewVal)
+				{
+					circlePrev.attr("r", newR);
+					if (circlePrev.attr("r") > wheelObj.bigR - wheelObj.r) { circlePrev.attr("r", wheelObj.bigR - wheelObj.r); }
+				}
+			}
+		})();
+
+		var click = (function()
+		{
+			return function(d)
+			{
+				var coords = d3.mouse(this);
+				var newR = rating_wheel.math.distance(coords[0], coords[1], 0, 0);
+					if (newR > (wheelObj.bigR - wheelObj.s)) 
+						{ newR = wheelObj.bigR - wheelObj.s; }
+					else if (newR < wheelObj.bigR * wheelObj.effect.center)
+						{ newR = wheelObj.bigR * wheelObj.effect.center; }
+
+				if (selectVal == "click")
+				{
+					var thisData = d3.select(this).datum();
+					var thisCat = thisData.cat;
+
+					var circleCat = d3.selectAll("circle").filter(function(d)
+						{
+							if (d3.select(this).attr("id") != "preview")
+							{
+								return d.cat == thisCat;
+							}
+						});
 					circleCat.attr("r", newR);
 				}
 			}
+		})();
 
-			function clickedTrack(d, i)
+		var down = (function()
+		{
+			return function(d)
 			{
-			 	activeCatTrack = d.cat;
+				if(selectVal == "drag")
+				{
+					activeCatTrack = d.cat;
+				}				
 			}
+		})();
+		var up = (function()
+		{
+			return function(d)
+			{
+				if(selectVal == "drag")
+				{
+					activeCatTrack = -1;
+				}
+			}
+		})();
 
-			function resetActiveTrack()
-			{
-				activeCatTrack =  -1;
-			}
-		}
+		arcTrackObj
+			.on("mousedown", down)
+			.on("mousemove", move)
+			.on("mouseup", up)
+			.on("click", click);
 	}
 }
 
