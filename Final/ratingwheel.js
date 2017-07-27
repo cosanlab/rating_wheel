@@ -875,7 +875,13 @@ rating_wheel.render =
 	
 	discreteHollow: function(circleObj, wheelObj)
 	{
-		wheelObj.clickFocus = [-1, -1];
+		wheelObj.intensitySelections = {};
+		for (var i = 0; i < wheelObj.catInfo.length; i ++)
+		{
+			var thisEmotion = wheelObj.catInfo[i]
+			wheelObj.intensitySelections[thisEmotion["name"][0]] = -1;
+		}
+		console.log(wheelObj.intensitySelections);
 		
 		var over = (function()
 		{
@@ -923,46 +929,46 @@ rating_wheel.render =
 			return function(d, i)
 			{
 				var clicked = d3.select(this);
-				if (wheelObj.clickFocus[0] != -1 && wheelObj.clickFocus[1] != -1) // current selection exists
-				{
-					var currSelect = d3.selectAll("circle")
-						.filter(function(d)
-							{
-								return d.cat == wheelObj.clickFocus[0];
-							})
-						.filter(function(d)
-							{
-								return d.intens == wheelObj.clickFocus[1];
-							});
-					// visually "undo" selection
-					currSelect
-						.style("fill-opacity", 1.0)
-						.style("stroke-width", 0);
-				}
+				
 				clicked.each(function(d)
 				{
-					// if this is the currently selected thing
-					if (d.cat == wheelObj.clickFocus[0] && d.intens == wheelObj.clickFocus[1])
+					var selectedEmotionName = wheelObj.catInfo[d.cat]["name"][0];
+					var selectedEmotionIntensity = d.intens;
+				
+					// If clicking an already selected circle, deselect it
+					if (wheelObj.intensitySelections[selectedEmotionName] == selectedEmotionIntensity)
 					{
-						//visually "undo" selection
+						// Visually "undo" selection
 						clicked
 							.style("fill-opacity", 1.0)
 							.style("stroke-width", 0);
-						//reset clickFocus
-						wheelObj.clickFocus[0] = -1;
-						wheelObj.clickFocus[1] = -1;
+						
+						// Reset this emotion in intensitySelections
+						wheelObj.intensitySelections[selectedEmotionName] = -1;
 					}
 					else
 					{
-						//visually indicate selection
+						// If another circle on this emotion has already been selected, deslect it before selecting the new one
+						if (wheelObj.intensitySelections[selectedEmotionName] >= 0)
+						{
+							var targetCat = d.cat;
+							d3.selectAll("circle").filter(function(d)
+							{
+								return d.cat == targetCat;
+							}).style("fill-opacity", 1.0)
+							.style("stroke-width", 0);
+						}
+						
+						// Highlight the new circle
 						clicked
 							.style("fill-opacity", 0.0)
 							.style("stroke-width", function(d)
 								{
 									return d.radius * 0.25;
 								});	
-						//update clickFocus
-						wheelObj.clickFocus = [d.cat, d.intens];
+						
+						// Update intensitySelections
+						wheelObj.intensitySelections[selectedEmotionName] = d.intens;
 					}
 				});
 			}
